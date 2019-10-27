@@ -477,6 +477,12 @@ namespace MiKu.NET {
         [SerializeField]
         private Slider m_SFXVolumeSlider;	
 
+		[SerializeField]
+        private Slider m_TimeSlider;
+		
+		[SerializeField]
+        private GameObject m_TimeSliderBookmark;
+		
         [SerializeField]
         private TextMeshProUGUI m_OffsetDisplay;
 
@@ -789,7 +795,10 @@ namespace MiKu.NET {
         bool threadFinished = false;
         bool treadWithError = false;
         Thread analyzerThread;
-
+		
+		// For setting the time slider value without triggering its onValueChange actions
+		bool timeSliderScriptChange = false;
+		
         private const string spc_cacheFolder = "/SpectrumData/";
         private const string spc_ext = ".spectrum";
 
@@ -922,7 +931,9 @@ namespace MiKu.NET {
             m_FullStatsContainer.SetActive(false);
 
             segmentsList = new List<Segment>();
-
+			
+			m_TimeSlider.onValueChanged.AddListener (delegate {TimeSliderChange(m_TimeSlider.value);});
+			
             s_instance = this;			
         }
 
@@ -2298,7 +2309,30 @@ namespace MiKu.NET {
             UpdatePlaybackSpeed();
             UpdateDisplayPlaybackSpeed();
         }
+		
+		/// <summary>
+        /// Dodge the time slider's onValueChange actions when setting the value through code.
+        /// </summary>
+		public void setTimeSliderWithoutEvent(float _sliderValue){
+			timeSliderScriptChange = true;
+			m_TimeSlider.value = _sliderValue;
+			timeSliderScriptChange = false;
+		}
+		
+		/// <summary>
+        /// Update the current time on slider event
+        /// </summary>
+		public void TimeSliderChange(float _sliderValue) {
+			if(!timeSliderScriptChange) JumpToTime(s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
+		}
 
+		/// <summary>
+        /// Update the current time on time slider bookmark event
+        /// </summary>
+		public void TimeSliderBookmarkClick(float _time) {
+			JumpToTime(s_instance.GetBeatMeasureByTime(_time));
+		}
+		
         /// <summary>
         /// Show Custom Difficulty windows />
         ///</summary>
@@ -2487,7 +2521,7 @@ namespace MiKu.NET {
                         book.name = m_BookmarkInput.text;
                         bookmarks.Add(book);	
                         s_instance.AddBookmarkGameObjectToScene(book.time, book.name);
-
+						s_instance.AddTimeSliderBookmarkGameObjectToScene(book.time, book.name);
                         Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_BookmarkOn);
                     }
                     break;
@@ -3232,6 +3266,8 @@ namespace MiKu.NET {
                 for(int i = 0; i < bookmarks.Count; ++i) {
                     GameObject book = GameObject.Find(GetBookmarkIdFormated(bookmarks[i].time));
                     GameObject.DestroyImmediate(book);
+					GameObject tsbook = GameObject.Find(GetTimeSliderBookmarkIdFormated(bookmarks[i].time));
+                    GameObject.DestroyImmediate(tsbook);
                 }
 
                 bookmarks.Clear();
@@ -4220,7 +4256,7 @@ namespace MiKu.NET {
                     m_CamerasHolder.position.x,
                     m_CamerasHolder.position.y,
                     zDest);
-            
+			setTimeSliderWithoutEvent(UnitToMS(zDest)/(TrackDuration*MS));
         }
 
         /// <summary>
@@ -4406,6 +4442,7 @@ namespace MiKu.NET {
             if(bookmarks != null && bookmarks.Count > 0) {
                 for(int i = 0; i < bookmarks.Count; ++i) {
                     AddBookmarkGameObjectToScene(bookmarks[i].time, bookmarks[i].name);
+                    AddTimeSliderBookmarkGameObjectToScene(bookmarks[i].time, bookmarks[i].name);
                 }
             }
             
@@ -4847,6 +4884,29 @@ namespace MiKu.NET {
             bookmarkText.SetText(name);
             return bookmarkGO;
         }	
+		
+		/// <summary>
+        /// Instantiate the bookmark time slider GameObject on the scene
+        /// </summary>
+        /// <param name="ms">The time in with the GameObect will be positioned</param>
+        /// <param name="name">The name of the bookmark</param>
+        GameObject AddTimeSliderBookmarkGameObjectToScene(float ms, string name) {
+            GameObject timeSliderBookmarkGO = GameObject.Instantiate(s_instance.m_TimeSliderBookmark);
+			GameObject sliderHandleArea = s_instance.m_TimeSlider.GetComponent<RectTransform>().Find("Handle Slide Area").gameObject;
+			timeSliderBookmarkGO.GetComponent<RectTransform>().parent = sliderHandleArea.GetComponent<RectTransform>();
+            timeSliderBookmarkGO.GetComponent<RectTransform>().localPosition = new Vector3(
+                                                0,
+                                                (s_instance.GetTimeByMeasure(ms)/(TrackDuration*MS))*sliderHandleArea.GetComponent<RectTransform>().rect.height - (sliderHandleArea.GetComponent<RectTransform>().rect.height/2), 
+                                                0
+                                            );
+											
+            //timeSliderBookmarkGO.transform.rotation =	Quaternion.identity;
+            
+            timeSliderBookmarkGO.name = s_instance.GetTimeSliderBookmarkIdFormated(ms);
+			timeSliderBookmarkGO.GetComponentInChildren<Text>().text = ms.ToString();
+			timeSliderBookmarkGO.GetComponent<Button>().onClick.AddListener(delegate {TimeSliderBookmarkClick(GetTimeByMeasure(ms)); });
+            return timeSliderBookmarkGO;
+        }
 
         /// <summary>
         /// Instantiate the Flash GameObject on the scene
@@ -6138,6 +6198,10 @@ namespace MiKu.NET {
                     if(bookmarkGO != null) {
                         DestroyImmediate(bookmarkGO);
                     }
+					GameObject tsbookmarkGO = GameObject.Find(s_instance.GetTimeSliderBookmarkIdFormated(CurrentSelectedMeasure));
+                    if(tsbookmarkGO != null) {
+                        DestroyImmediate(tsbookmarkGO);
+                    }
 
                     Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_BookmarkOff);
                 } else {
@@ -7207,6 +7271,14 @@ namespace MiKu.NET {
         /// <param name="ms">The time on with the bookmark is</param>
         string GetBookmarkIdFormated(float ms) {
             return string.Format("Bookmark_{0}", ms.ToString("R"));
+        }
+		
+		/// <summary>
+        /// handler to get the time slider bookmark name passing the time
+        /// </summary>
+        /// <param name="ms">The time on with the bookmark is</param>
+        string GetTimeSliderBookmarkIdFormated(float ms) {
+            return string.Format("TimeSliderBookmark_{0}", ms.ToString("R"));
         }
 
         /// <summary>
