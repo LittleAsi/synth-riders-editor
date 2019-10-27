@@ -50,6 +50,7 @@ namespace MiKu.NET {
 
         public LayerMask targetMask = 11;
         private bool isCTRLDown;
+        private bool isALTDown;
 
         Vector3 finalPosition, mirroredPosition;
         GameObject[] multipleNotes;
@@ -124,29 +125,47 @@ namespace MiKu.NET {
         {
             if(hasFocus) {
                 isCTRLDown = false;
+                isALTDown = false;
             } 
         }
 
         void Update()
         {
-            if(Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt))
+            if(Input.GetButtonDown("Input Modifier1"))
             {
                 isCTRLDown = true;
             }
 
-            if(Input.GetKeyUp(KeyCode.LeftAlt) || Input.GetKeyUp(KeyCode.RightAlt)) {
+            // Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)
+            if(Input.GetButtonUp("Input Modifier1")) {
                 isCTRLDown = false;
             }
+
+            // Input.GetKeyDown(KeyCode.LeftAlt)
+            if(Input.GetButtonDown("Input Modifier2")) {
+                isALTDown = true;
+            }
+
+            // Input.GetKeyUp(KeyCode.LeftAlt)
+            if(Input.GetButtonUp("Input Modifier2")) {
+                isALTDown = false;
+            }
             
-            if (!isCTRLDown && Input.GetMouseButtonDown(0) && selectedNote != null) {
-                if(Track.IsOnMirrorMode) {
-                    System.Array.Clear(multipleNotes, 0, 2);
-                    multipleNotes[0] = selectedNote;
-                    multipleNotes[1] = mirroredNote;
-                    Track.AddNoteToChart(multipleNotes);
+            if (Input.GetMouseButtonDown(0) && selectedNote != null) {
+                if(!isALTDown && !isCTRLDown) {
+                    if(Track.IsOnMirrorMode) {
+                        System.Array.Clear(multipleNotes, 0, 2);
+                        multipleNotes[0] = selectedNote;
+                        multipleNotes[1] = mirroredNote;
+                        Track.AddNoteToChart(multipleNotes);
+                    } else {
+                        Track.AddNoteToChart(selectedNote);
+                    }	
                 } else {
-                    Track.AddNoteToChart(selectedNote);
-                }				
+                    if(isCTRLDown) {
+                        Track.TryMirrorSelectedNote(selectedNote.transform.position);
+                    }
+                }               			
             }
         }
 

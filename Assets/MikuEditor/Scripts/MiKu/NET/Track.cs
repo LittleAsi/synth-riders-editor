@@ -87,6 +87,27 @@ namespace MiKu.NET {
         public List<int> segmentAxis;
     }
 
+    [Serializable]
+    public struct Segment {
+        public float measure;
+        public Note note;
+        public int index;
+        public bool isStartPoint;
+
+        public Segment(float m, Note n, int i, bool sp) {
+            measure = m;
+            note = n;
+            index = i;
+            isStartPoint = sp;
+        }
+    }
+
+    public struct LookBackObject {
+        public Note note;
+        public Segment segment;
+        public bool isSegment;
+    }
+
     public struct SelectionArea
     {
         public float startMeasure;
@@ -169,6 +190,7 @@ namespace MiKu.NET {
         enum StepType {
             Measure,
             Notes,
+            Lines,
             Walls
         }
 
@@ -851,6 +873,7 @@ namespace MiKu.NET {
         private StepType currentStepType = StepType.Measure;
 
         private StringBuilder statsSTRBuilder;
+        private List<Segment> segmentsList;
         
 
         // Use this for initialization
@@ -897,6 +920,8 @@ namespace MiKu.NET {
             currentLockeMode = Cursor.lockState;
 
             m_FullStatsContainer.SetActive(false);
+
+            segmentsList = new List<Segment>();
 
             s_instance = this;			
         }
@@ -1082,6 +1107,7 @@ namespace MiKu.NET {
                     CloseSpecialSection();
                     FinalizeLongNoteMode();
                     DeleteNotesAtTheCurrentTime();
+                    UpdateSegmentsList();
                 }
             }
 
@@ -1418,18 +1444,16 @@ namespace MiKu.NET {
             }
 
             if(Input.GetKeyDown(KeyCode.V)) {
-                if(isCTRLDown && !IsPlaying && !PromtWindowOpen) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-
-                    PasteAction();
-                    /* if(Miku_Clipboard.Initialized && 
-                        Miku_Clipboard.CopiedDict != null && 
-                            Miku_Clipboard.CopiedDict.Count > 0) {
-                        DoPasteOnCurrentDifficulty();
-                    } else {
-                        Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_ClipBoardEmpty);
-                    } */
+                if(!IsPlaying && !PromtWindowOpen) {
+                    if(isCTRLDown) {
+                        CloseSpecialSection();
+                        FinalizeLongNoteMode();
+                        PasteAction();
+                    } else if(isALTDown) {
+                        CloseSpecialSection();
+                        FinalizeLongNoteMode();
+                        PasteAction(true);
+                    }
                     
                 } 
             }
@@ -1604,6 +1628,8 @@ namespace MiKu.NET {
                 if(currentStepType == StepType.Measure) {
                     currentStepType = StepType.Notes;
                 } else if(currentStepType == StepType.Notes) {
+                    currentStepType = StepType.Lines;
+                } else if(currentStepType == StepType.Lines) { 
                     currentStepType = StepType.Walls;
                 } else {
                     currentStepType = StepType.Measure;
@@ -2833,7 +2859,7 @@ namespace MiKu.NET {
             ShowPromtWindow(StringVault.Promt_PasteNotes);
         }
 
-        public void PasteAction() {
+        public void PasteAction(bool reversePaste = false) {
             isBusy = true;
             try {
                 ClipBoardStruct pasteContent = JsonConvert.DeserializeObject<ClipBoardStruct>(GUIUtility.systemCopyBuffer);
@@ -2880,6 +2906,14 @@ namespace MiKu.NET {
                                     currNote.Type
                                 );
 
+                                if(reversePaste) {
+                                    if(copyNote.Type == Note.NoteType.LeftHanded) {
+                                        copyNote.Type = Note.NoteType.RightHanded;
+                                    } else if(copyNote.Type == Note.NoteType.RightHanded) {
+                                        copyNote.Type = Note.NoteType.LeftHanded;
+                                    }
+                                }
+
                                 if(currNote.Segments != null && currNote.Segments.GetLength(0) > 0) {	
                                     float[,] copySegments = new float[currNote.Segments.GetLength(0), 3];
                                     for(int x = 0; x < currNote.Segments.GetLength(0); ++x) {
@@ -2924,7 +2958,19 @@ namespace MiKu.NET {
                 for(int i = 0; i < pasteContent.slides.Count; ++i) {
                     if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
                         CurrentSelectedMeasure = pasteContent.slides[i].time + (backUpMeasure - pasteContent.startMeasure);
-                        ToggleMovementSectionToChart(GetSlideTagByType(pasteContent.slides[i].slideType), true);
+                        Slide pasteSlide = pasteContent.slides[i];
+                        if(reversePaste) {
+                            if(pasteSlide.slideType == Note.NoteType.LeftHanded) {
+                                pasteSlide.slideType = Note.NoteType.RightHanded;
+                            } else if(pasteSlide.slideType == Note.NoteType.RightHanded) {
+                                pasteSlide.slideType = Note.NoteType.LeftHanded;
+                            } else if(pasteSlide.slideType == Note.NoteType.SeparateHandSpecial) {
+                                pasteSlide.slideType = Note.NoteType.OneHandSpecial;
+                            } else if(pasteSlide.slideType == Note.NoteType.OneHandSpecial) {
+                                pasteSlide.slideType = Note.NoteType.SeparateHandSpecial;
+                            }
+                        }
+                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlide.slideType), true);
                     }
                 }
 
@@ -2953,6 +2999,8 @@ namespace MiKu.NET {
             if(m_FullStatsContainer.activeInHierarchy) {
                 GetCurrentStats();
             }
+
+            UpdateSegmentsList();
             isBusy = false;	
         }
         
@@ -3608,17 +3656,80 @@ namespace MiKu.NET {
             _fromBPM = _fromBPM == 0 ? BPM : _fromBPM;
             return ( ((_ms * MINUTE) / _fromBPM) / MAX_MEASURE_DIVIDER ) * MS;
         }
+        
+        /// <summary>
+        /// Given the beat measure return the Note object at that position
+        /// </summary>
+        /// <param name="_ms">Beat measure to convert</param>
+        /// <returns>Returns <typeparamref name="float"/></returns>
+        public LookBackObject GetNoteAtMeasure(float ms, Vector3 filterPostition) {
+            Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
+
+            if(workingTrack.ContainsKey(ms)) {
+                List<Note> notes = workingTrack[ms];
+                // Check for notes
+                foreach(Note note in notes) {
+                    if(
+                        ArePositionsOverlaping(
+                            filterPostition, 
+                            new Vector3(
+                                note.Position[0],
+                                note.Position[1],
+                                note.Position[2]
+                            )
+                        )
+                    ) {
+                        LookBackObject foundNote = new LookBackObject();
+                        foundNote.note = note;
+                        foundNote.isSegment = false;
+                        return foundNote;
+                    } else {
+                        Debug.LogError("No overlap note");
+                    }
+                }
+            } else {
+               List<Segment> segments = segmentsList.FindAll(x => x.measure == ms);
+               if(segments != null && segments.Count > 0) {
+                   foreach(Segment s in segments) {
+                       Vector3 segmentPos = new Vector3(
+                                s.note.Segments[s.index, 0],
+                                s.note.Segments[s.index, 1], 
+                                s.note.Segments[s.index, 2]
+                        );
+
+                        if(
+                            ArePositionsOverlaping(
+                                filterPostition, 
+                                segmentPos
+                            )
+                        ) {
+                            LookBackObject foundNote = new LookBackObject();
+                            foundNote.note = null;
+                            foundNote.isSegment = true;
+                            foundNote.segment = s;
+                            return foundNote;
+                        } else {
+                            Debug.LogError("No overlap segment");
+                        }
+                   }
+               }
+            }  
+
+            return new LookBackObject(); 
+        }
 
         float CheckForMeasureError(float targetMeasure) {
-            Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();            
-            List<float> keys_sorted = workingTrack.Keys.ToList();
+            Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
 
-            // Check for notes
-            foreach(float measureKey in keys_sorted) {
-                if(Mathf.Abs(measureKey - targetMeasure) <= 0.1f) {
-                    return measureKey;
+            if(!workingTrack.ContainsKey(targetMeasure)) {
+                List<float> keys_sorted = workingTrack.Keys.ToList();
+                // Check for notes
+                foreach(float measureKey in keys_sorted) {
+                    if(Mathf.Abs(measureKey - targetMeasure) <= 0.1f) {
+                        return measureKey;
+                    }
                 }
-            }
+            }          
 
             return targetMeasure;
         }      
@@ -3640,6 +3751,25 @@ namespace MiKu.NET {
                     index = Mathf.Min(index, keys_sorted.Count - 1);
                     return keys_sorted[index];
                 }                
+            } else if(currentStepType == StepType.Lines) {
+                List<Segment> keys_sorted = segmentsList.OrderBy(x => x.measure).ToList();
+                int index = -1;
+                if(keys_sorted != null && keys_sorted.Count > 0) {
+                    index = keys_sorted.FindIndex(x => x.measure == CurrentSelectedMeasure);
+                    if(index >= 0) {
+                        index += 1;
+                        if(index < keys_sorted.Count && keys_sorted[index].measure == CurrentSelectedMeasure) {
+                            index += 1;
+                        }                                     
+                    } else {
+                        index = keys_sorted.FindIndex(x => x.measure > CurrentSelectedMeasure); 
+                    }
+                }
+
+                if(index >= 0) {
+                    index = Mathf.Min(index, keys_sorted.Count - 1);
+                    return keys_sorted[index].measure;
+                } 
             } else if(currentStepType == StepType.Walls) {
                 List<float> crouchs = GetCurrentMovementListByDifficulty(false);
                 crouchs = crouchs.OrderBy(x => x).ToList();
@@ -3706,6 +3836,25 @@ namespace MiKu.NET {
                     index = Mathf.Min(index, keys_sorted.Count - 1);
                     return keys_sorted[index];
                 }                
+            } else if(currentStepType == StepType.Lines) {
+                List<Segment> keys_sorted = segmentsList.OrderByDescending(x => x.measure).ToList();
+                int index = -1;
+                if(keys_sorted != null && keys_sorted.Count > 0) {
+                    index = keys_sorted.FindIndex(x => x.measure == CurrentSelectedMeasure);
+                    if(index >= 0) {
+                        index += 1;
+                        if(index < keys_sorted.Count && keys_sorted[index].measure == CurrentSelectedMeasure) {
+                            index += 1;
+                        }                                     
+                    } else {
+                        index = keys_sorted.FindIndex(x => x.measure < CurrentSelectedMeasure); 
+                    }                                  
+                } 
+
+                if(index >= 0) {
+                    index = Mathf.Min(index, keys_sorted.Count - 1);
+                    return keys_sorted[index].measure;
+                } 
             } else if(currentStepType == StepType.Walls) {
                 List<float> crouchs = GetCurrentMovementListByDifficulty(false);
                 crouchs = crouchs.OrderByDescending(x => x).ToList();
@@ -4311,6 +4460,58 @@ namespace MiKu.NET {
             if(m_FullStatsContainer.activeInHierarchy) {
                 GetCurrentStats();
             }
+
+            UpdateSegmentsList();
+        }
+
+        private void UpdateSegmentsList()
+        {
+            segmentsList.Clear();
+            Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
+            Dictionary<float, List<Note>>.ValueCollection valueColl = workingTrack.Values;
+            
+            List<float> keys_sorted = workingTrack.Keys.ToList();
+            keys_sorted.Sort();
+
+            if(workingTrack != null && workingTrack.Count > 0) {
+                // If the Beatmap is not using beat measure as the dic ID, whe update it                
+                            
+                // Iterate each entry on the Dictionary and get the note to update
+                //foreach( List<Note> _notes in valueColl ) {
+                foreach( float key in keys_sorted ) {
+                    List<Note> notes = workingTrack[key];
+                    foreach(Note note in notes) {
+                        if(note.Segments != null && note.Segments.GetLength(0) > 0) {
+                            segmentsList.Add(new Segment(
+                                key,
+                                note,
+                                -1,
+                                true
+                            ));
+
+                            for(int i = 0; i < note.Segments.GetLength(0); ++i) {
+                                Vector3 segmentPos = transform.InverseTransformPoint(
+                                        note.Segments[i, 0],
+                                        note.Segments[i, 1], 
+                                        note.Segments[i, 2]
+                                );
+
+                                float tms = UnitToMS(segmentPos.z);
+                                segmentsList.Add(new Segment(
+                                    GetBeatMeasureByTime(tms),
+                                    note,
+                                    i,
+                                    false
+                                ));
+                            }
+                        }
+                    }
+                }
+
+                // Debug.LogError(JsonConvert.SerializeObject(segmentsList, Formatting.Indented));
+            }
+
+            // Debug.LogError(segmentsList.Count);
         }
 
         /// <summary>
@@ -4805,6 +5006,8 @@ namespace MiKu.NET {
                         if(m_FullStatsContainer.activeInHierarchy) {
                             GetCurrentStats();
                         }
+
+                        UpdateSegmentsList();
                     } else {
                         abortLongNote = true;
                         Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_LongNoteModeAborted);
@@ -5335,6 +5538,65 @@ namespace MiKu.NET {
         }		
 
 #region Statics Methods
+        
+        /// <summary>
+        /// Mirror the note found at the passed position
+        /// </summary>
+        /// <param name="targetPosition">Vector3 position in where to find the note to mirror</param>
+        public static void TryMirrorSelectedNote(Vector3 targetPosition) {
+            LookBackObject foundNote = s_instance.GetNoteAtMeasure(CurrentSelectedMeasure, targetPosition);
+            if(foundNote.note == null || foundNote.isSegment) {
+                // is not note object is found or was a segment we do nothing;
+                return;
+            }
+
+            // if the found note is a special note, we do nothing
+            if(foundNote.note.Type == Note.NoteType.OneHandSpecial || foundNote.note.Type == Note.NoteType.BothHandsSpecial) {
+                return;
+            }
+
+            // Mirror routine
+            int totalNotes = 0;
+            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+            if(workingTrack.ContainsKey(CurrentSelectedMeasure)) {
+                List<Note> notes = workingTrack[CurrentSelectedMeasure];
+                totalNotes = notes.Count;
+
+                if(totalNotes >= MAX_ALLOWED_NOTES) {
+                    //Track.LogMessage("Max number of notes reached");
+                    Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_MaxNumberOfNotes);
+                    return;
+                }
+                
+                Vector3 mirrorPost = new Vector3(
+                    foundNote.note.Position[0] * -1,
+                    foundNote.note.Position[1],
+                    foundNote.note.Position[2]
+                );
+
+                Note n = new Note(mirrorPost, FormatNoteName(CurrentSelectedMeasure, s_instance.TotalNotes + 1, GetMirroreNoteMarkerType(foundNote.note.Type)));
+                n.Type = GetMirroreNoteMarkerType(foundNote.note.Type);
+                if(foundNote.note.Segments != null && foundNote.note.Segments.GetLength(0) > 0) {
+                    n.Segments = new float[foundNote.note.Segments.GetLength(0), 3]; 
+                    for(int i = 0; i < foundNote.note.Segments.GetLength(0); ++i) {
+                        n.Segments[i, 0] = foundNote.note.Segments[i, 0] * -1;
+                        n.Segments[i, 1] = foundNote.note.Segments[i, 1];
+                        n.Segments[i, 2] = foundNote.note.Segments[i, 2];
+                    }
+                }
+                s_instance.AddNoteGameObjectToScene(n);
+                workingTrack[CurrentSelectedMeasure].Add(n); 
+                s_instance.UpdateTotalNotes();
+                if(s_instance.m_FullStatsContainer.activeInHierarchy) {
+                    s_instance.GetCurrentStats();
+                }
+
+                if(foundNote.note.Segments != null && foundNote.note.Segments.GetLength(0) > 0) { 
+                    s_instance.UpdateSegmentsList();
+                }
+            }            
+        }
+
         /// <summary>
         /// Display the passed <paramref  name="message" /> on the console
         /// </summary>
@@ -5481,6 +5743,10 @@ namespace MiKu.NET {
                                         overlap.Id = FormatNoteName(CurrentSelectedMeasure, 0, overlap.Type);
                                         nToDelete.name = overlap.Id;
                                     }								
+                                }
+
+                                if(overlap.Segments != null && overlap.Segments.GetLength(0) > 0) {
+                                    s_instance.UpdateSegmentsList();
                                 }
                                 return;
                             }
@@ -6291,6 +6557,7 @@ namespace MiKu.NET {
                 // Finally Update the note data
                 workingTrack.Clear();
                 UpdateCurrentTrackDifficulty(updateData);
+                UpdateSegmentsList();
             }
 
             // Get the current effects track
@@ -7387,7 +7654,7 @@ namespace MiKu.NET {
                 .AppendLine(string.Format("Avg notes height - <b>{0}mts</b>", avgNotesHeight.ToString("0.##"))) 
                 .AppendLine(string.Format("Tallest note - <b>{0}mts</b>", highestNote.ToString("0.##")))   
                 .AppendLine(string.Format("Lowest note - <b>{0}mts</b>", lowestNote.ToString("0.##")))
-                .AppendLine(string.Format("Total Crossover - <b>{0}</b>", totalCrossOvers))
+                .AppendLine(string.Format("Total Crossovers - <b>{0}</b>", totalCrossOvers))
                 .AppendLine(string.Format("Total Jumps - <b>{0}</b>", totalJumps))
                 .AppendLine(string.Format("Avg Lines length - <b>{0}s</b>", avgLinesLeght.ToString("0.##")))
                 .AppendLine(string.Format("Longest line - <b>{0}s</b>", longestLine.ToString("0.##")))
