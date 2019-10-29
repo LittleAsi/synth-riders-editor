@@ -19,6 +19,16 @@ using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace MiKu.NET {
+    sealed class FloatEqualityComparer : IEqualityComparer<float>
+    {
+        public bool Equals(float x, float y) {
+            return Mathf.Round(x) == Math.Round(y);
+        }
+
+        public int GetHashCode(float f) {
+            return Mathf.Round(f).GetHashCode();
+        }
+    }
 
     /// <sumary>
     /// Small class for the representation of the Track info
@@ -823,6 +833,7 @@ namespace MiKu.NET {
         private const string SCROLLSOUND_KEY = "com.synth.editor.ScrollSound";
         private const string GRIDSIZE_KEY = "com.synth.editor.GridSize";
         private const string STEPTYPE_KEY = "com.synth.editor.StepType";
+        private const string LASTPLACENOTE_KEY = "com.synth.editor.LastPlaceNote";
 
         // 
         private WaitForSeconds pointEightWait;
@@ -883,6 +894,8 @@ namespace MiKu.NET {
 
         private StringBuilder statsSTRBuilder;
         private List<Segment> segmentsList;
+        private bool lastStepWasAObject = false;
+        private bool showLastPlaceNoted = true;
         
 
         // Use this for initialization
@@ -1125,7 +1138,7 @@ namespace MiKu.NET {
             // Return to start time
             // Input.GetKeyDown(KeyCode.Home)
             if(Input.GetButtonDown("Timeline Start") && !PromtWindowOpen) {
-                if(isCTRLDown && !IsPlaying) {
+                if(!IsPlaying) {
                     CloseSpecialSection();
                     FinalizeLongNoteMode();
                     ReturnToStartTime();
@@ -1135,7 +1148,7 @@ namespace MiKu.NET {
 
             // Input.GetKeyDown(KeyCode.End)
             if(Input.GetButtonDown("Timeline End") && !PromtWindowOpen) {
-                if(isCTRLDown && !IsPlaying) {
+                if(!IsPlaying) {
                     CloseSpecialSection();
                     FinalizeLongNoteMode();
                     GoToEndTime();
@@ -1331,7 +1344,17 @@ namespace MiKu.NET {
             }	
 
             if(Input.GetButtonDown("Bookmark Jump") && !PromtWindowOpen) {
-                ToggleBookmarkJump();
+                if(isCTRLDown) {
+                    ToggleBookmarkJump();
+                } else {
+                    if(currentPromt == PromtType.AddBookmarkAction) {
+                        if(!m_BookmarkInput.isFocused) {
+                            ClosePromtWindow();
+                        }							
+                    } else {
+                        ToggleBookmarkToChart();
+                    }					
+                }                 
             }		
 
             // Toggle Metronome
@@ -1468,6 +1491,13 @@ namespace MiKu.NET {
                     
                 } 
             }
+			
+			// Flip selected notes
+			if(Input.GetButtonDown("Flip") && !IsPlaying && !PromtWindowOpen) {
+				CloseSpecialSection();
+				FinalizeLongNoteMode();
+				FlipAction();
+			}
 
             // Toggle Stats Window
             if((Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0)) && !PromtWindowOpen) {
@@ -1487,11 +1517,11 @@ namespace MiKu.NET {
 
             // Jumpt to Time
             // Input.GetKeyDown(KeyCode.F)
-            if(Input.GetButtonDown("Jump to Time") && !IsPlaying && !PromtWindowOpen) {
+            /* if(Input.GetButtonDown("Jump to Time") && !IsPlaying && !PromtWindowOpen) {
                 CloseSpecialSection();
                 FinalizeLongNoteMode();
                 DoJumpToTimeAction();
-            }
+            } */
 
             if(Input.GetKeyDown(KeyCode.F12) && !PromtWindowOpen && !IsPlaying) {
                 if(isCTRLDown) {
@@ -1608,6 +1638,31 @@ namespace MiKu.NET {
                         ToggleStepType();
                     }
                 }                
+            }
+
+            if(Input.GetKeyDown(KeyCode.RightBracket) || Input.GetKeyDown(KeyCode.PageUp)) {
+                if(!PromtWindowOpen) {
+                    if(!isPlaying) {
+                        JumpToMeasure(GetNextBookamrk());
+                    }		
+                }
+            }
+
+            if(Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.PageDown)) {
+                if(!PromtWindowOpen) {
+                    if(!isPlaying) {
+                        JumpToMeasure(GetPrevBookamrk());
+                    }		
+                }
+            }
+
+            if(Input.GetKeyDown(KeyCode.Q)) {
+                showLastPlaceNoted = !showLastPlaceNoted;
+                if(!showLastPlaceNoted) {
+                    notesArea.HideHistoryCircle();
+                } else {
+                    ShowLastNoteShadow();
+                }
             }
 #endregion
 
@@ -2314,6 +2369,7 @@ namespace MiKu.NET {
         /// Dodge the time slider's onValueChange actions when setting the value through code.
         /// </summary>
 		public void setTimeSliderWithoutEvent(float _sliderValue){
+		    Debug.Log("TS No Event: " + _sliderValue);
 			timeSliderScriptChange = true;
 			m_TimeSlider.value = _sliderValue;
 			timeSliderScriptChange = false;
@@ -2323,14 +2379,23 @@ namespace MiKu.NET {
         /// Update the current time on slider event
         /// </summary>
 		public void TimeSliderChange(float _sliderValue) {
-			if(!timeSliderScriptChange) JumpToTime(s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
+		    //Debug.Log("TS Change? " + s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
+		    Debug.Log("TS Change? " + s_instance.GetBeatMeasureByTime(GetCloseStepMeasure(_sliderValue*(TrackDuration*MS))));
+			if(!timeSliderScriptChange){
+			    //JumpToTime(s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
+			    JumpToMeasure(s_instance.GetBeatMeasureByTime(GetCloseStepMeasure(_sliderValue*(TrackDuration*MS))));
+				Debug.Log("Yes TS Change");
+			}
 		}
 
 		/// <summary>
         /// Update the current time on time slider bookmark event
         /// </summary>
 		public void TimeSliderBookmarkClick(float _time) {
-			JumpToTime(s_instance.GetBeatMeasureByTime(_time));
+		    //Debug.Log("TS BM Click " + s_instance.GetBeatMeasureByTime(_time));
+		    Debug.Log("TS BM Click " + s_instance.GetBeatMeasureByTime(_time));
+			//JumpToTime(s_instance.GetBeatMeasureByTime(_time));
+			JumpToMeasure(s_instance.GetBeatMeasureByTime(_time));
 		}
 		
         /// <summary>
@@ -2403,14 +2468,15 @@ namespace MiKu.NET {
         /// Return view to start time
         ///</summary>
         public void ReturnToStartTime() {
-            JumpToTime(0);
+            JumpToMeasure(0);
         }
 
         /// <summary>
         /// Send view to end time
         ///</summary>
         public void GoToEndTime() {
-            JumpToTime(trackDuration * MS);
+            float measure = GetTimeByMeasure(GetCloseStepMeasure(trackDuration * MS));
+            JumpToMeasure(measure);
         }
 
         /// <summary>
@@ -2945,6 +3011,10 @@ namespace MiKu.NET {
                                         copyNote.Type = Note.NoteType.RightHanded;
                                     } else if(copyNote.Type == Note.NoteType.RightHanded) {
                                         copyNote.Type = Note.NoteType.LeftHanded;
+                                    } else if(copyNote.Type == Note.NoteType.OneHandSpecial) {
+                                        copyNote.Type = Note.NoteType.BothHandsSpecial;
+                                    } else if(copyNote.Type == Note.NoteType.BothHandsSpecial) {
+                                        copyNote.Type = Note.NoteType.OneHandSpecial;
                                     }
                                 }
 
@@ -3038,6 +3108,105 @@ namespace MiKu.NET {
             isBusy = false;	
         }
         
+		/// <summary>
+        /// Flip selected notes horizontally and swap left/right handedness
+        /// </summary>
+		public void FlipAction(){
+            isBusy = true;
+			// Read and record the original, unflipped pattern
+			ClipBoardStruct flipClipboard = new ClipBoardStruct();
+			flipClipboard.notes = new Dictionary<float, List<ClipboardNote>>();
+			flipClipboard.slides = new List<Slide>();
+            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+            List<Slide> slides = GetCurrentMovementListByDifficulty();
+            List<float> keys_tofilter = workingTrack.Keys.ToList();
+            if(CurrentSelection.endTime > CurrentSelection.startTime) {				
+                keys_tofilter = keys_tofilter.Where(time => time >= GetBeatMeasureByTime(CurrentSelection.startTime) 
+                    && time <= GetBeatMeasureByTime(CurrentSelection.endTime)).ToList();
+                flipClipboard.slides = slides.Where(s => s.time >= GetBeatMeasureByTime(CurrentSelection.startTime)
+                    && s.time <= GetBeatMeasureByTime(CurrentSelection.endTime)).ToList();
+                flipClipboard.startTime = CurrentSelection.startTime;
+                flipClipboard.startMeasure = CurrentSelection.startMeasure;
+                flipClipboard.lenght = CurrentSelection.endTime - CurrentSelection.startTime;
+            } else {
+                keys_tofilter = keys_tofilter.Where(time => time == CurrentSelectedMeasure).ToList();
+                flipClipboard.slides = slides.Where(s => s.time == CurrentSelectedMeasure).ToList();
+                flipClipboard.startTime = GetTimeByMeasure(CurrentSelectedMeasure);
+                flipClipboard.startMeasure = CurrentSelectedMeasure;
+                flipClipboard.lenght = 0;
+            }
+
+            for(int j = 0; j < keys_tofilter.Count; ++j) {
+                float lookUpTime = keys_tofilter[j];
+                if(workingTrack.ContainsKey(lookUpTime)) {
+                    List<Note> copyNotes = workingTrack[lookUpTime];
+                    List<ClipboardNote> clipboardNotes = new List<ClipboardNote>();
+                    int totalNotes = copyNotes.Count;
+                    for(int i = 0; i < totalNotes; ++i) {
+                        Note toCopy = copyNotes[i];
+                        clipboardNotes.Add(new ClipboardNote(toCopy.Position, toCopy.Type, toCopy.Segments));						
+                    }
+                    flipClipboard.notes.Add(lookUpTime, clipboardNotes);
+                }				
+            }	
+			// Remove the existing pattern and replace it with flipped variation
+			try {
+                float backUpMeasure = CurrentSelectedMeasure;
+                DeleteNotesAtTheCurrentTime();
+                List<float> note_keys = flipClipboard.notes.Keys.ToList();
+                if(note_keys.Count > 0) {
+                    List<Note> copyList;
+                    List<ClipboardNote> currList;
+                    for(int i = 0; i < note_keys.Count; ++i) {
+                        float newTime = note_keys[i];
+                        if(GetTimeByMeasure(newTime) > 2000 && GetTimeByMeasure(newTime) < (TrackDuration * MS)) {
+                            currList = flipClipboard.notes[note_keys[i]];
+                            copyList = new List<Note>();
+                            for(int j = 0; j < currList.Count; ++j) {
+                                ClipboardNote currNote = currList[j];						
+                                float newPos = MStoUnit(GetTimeByMeasure(newTime));											
+                                Note copyNote = new Note(
+                                    new Vector3(currNote.Position[0]*-1, currNote.Position[1], newPos), FormatNoteName(newTime, j, GetFlippedNoteType(currNote.Type)), -1, GetFlippedNoteType(currNote.Type));
+                                if(currNote.Segments != null && currNote.Segments.GetLength(0) > 0) {	
+                                    float[,] copySegments = new float[currNote.Segments.GetLength(0), 3];
+                                    for(int x = 0; x < currNote.Segments.GetLength(0); ++x) {
+                                        Vector3 segmentPos = transform.InverseTransformPoint(currNote.Segments[x, 0]*-1, currNote.Segments[x, 1], currNote.Segments[x, 2]);
+                                        float tms = UnitToMS(segmentPos.z);
+                                        copySegments[x, 0] = currNote.Segments[x, 0]*-1;
+                                        copySegments[x, 1] = currNote.Segments[x, 1];
+                                        copySegments[x, 2] = currNote.Segments[x, 2];                                                                       
+                                    }
+                                    copyNote.Segments = copySegments;
+                                }
+                                AddNoteGameObjectToScene(copyNote);
+                                copyList.Add(copyNote);
+                                UpdateTotalNotes();
+                            }
+                            workingTrack.Add(newTime, copyList);
+                            AddTimeToSFXList(GetTimeByMeasure(newTime));
+                        }                        
+                    }				
+                }
+                for(int i = 0; i < flipClipboard.slides.Count; ++i) {
+					CurrentSelectedMeasure = flipClipboard.slides[i].time;
+                    if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
+                        ToggleMovementSectionToChart(GetFlippedSlideTag(GetSlideTagByType(flipClipboard.slides[i].slideType)), true);
+                    }
+                }
+                CurrentSelectedMeasure = backUpMeasure;
+				ClearSelectionMarker();
+                Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_NoteFlipSuccess);	
+            } catch(Exception e){
+                Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_NoteFlipFailure);
+                Serializer.WriteToLogFile(e.ToString());
+            }
+
+            if(m_FullStatsContainer.activeInHierarchy) {
+                GetCurrentStats();
+            }
+            isBusy = false;	
+		}
+		
         /// <summary>
         /// Turn on/off and update the data of the Stats Window
         /// </summary>
@@ -3150,7 +3319,7 @@ namespace MiKu.NET {
             List<Bookmark> bookmarks = CurrentChart.Bookmarks.BookmarksList;
             if(bookmarks != null && bookmarks.Count > 0) {
                 // print(bookmarks[index-1].time);
-                JumpToTime(bookmarks[index-1].time);
+                JumpToMeasure(bookmarks[index-1].time);
                 ClosePromtWindow();
             }			
         }
@@ -3754,6 +3923,28 @@ namespace MiKu.NET {
             return new LookBackObject(); 
         }
 
+        void ShowLastNoteShadow() {
+            Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();   
+            if(workingTrack.Count > 0 && showLastPlaceNoted) {
+                List<float> keys_sorted = workingTrack.Keys.ToList();
+                keys_sorted = keys_sorted.OrderByDescending(x => x).ToList();
+                if(keys_sorted[0] < CurrentSelectedMeasure) {
+                    List<Note> notes = workingTrack[keys_sorted[0]];
+                    Vector3[] points = new Vector3[notes.Count];
+                    Note.NoteType[] types = new Note.NoteType[notes.Count];
+                    for(int i = 0; i < notes.Count; ++i) {
+                        points[i] = new Vector3(notes[i].Position[0], notes[i].Position[1], 0);
+                        types[i] = notes[i].Type;
+                    }
+                    notesArea.SetHistoryCircleColor(points, types);
+                } else {
+                    notesArea.HideHistoryCircle();
+                }
+            } else {
+                notesArea.HideHistoryCircle();
+            }                     
+        }
+
         float CheckForMeasureError(float targetMeasure) {
             Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
 
@@ -3769,6 +3960,56 @@ namespace MiKu.NET {
 
             return targetMeasure;
         }      
+
+        float GetNextBookamrk() {
+            List<Bookmark> bookmarks = CurrentChart.Bookmarks.BookmarksList;
+            bookmarks = bookmarks.OrderBy(x => x.time).ToList();
+            int index = -1;
+            float bookmarMeasure = -1;
+            
+            if(bookmarks != null && bookmarks.Count > 0) {
+                index = bookmarks.FindIndex(x => x.time == CurrentSelectedMeasure);
+                if(index >= 0) {
+                    index += 1;                    
+                } else {
+                    index = bookmarks.FindIndex(x => x.time > CurrentSelectedMeasure);
+                }
+            }
+
+            if(index >= 0) {
+                index = Mathf.Min(index, bookmarks.Count - 1);
+                bookmarMeasure = bookmarks[index].time;
+                return bookmarMeasure;
+            }
+
+            return CurrentSelectedMeasure;
+        }     
+
+        float GetPrevBookamrk() {
+            List<Bookmark> bookmarks = CurrentChart.Bookmarks.BookmarksList;
+            bookmarks = bookmarks.OrderByDescending(x => x.time).ToList();
+            int index = -1;
+            float bookmarMeasure = -1;
+            
+            if(bookmarks != null && bookmarks.Count > 0) {
+                index = bookmarks.FindIndex(x => x.time == CurrentSelectedMeasure);
+                if(index >= 0) {
+                    index += 1;                    
+                } else {
+                    index = bookmarks.FindIndex(x => x.time < CurrentSelectedMeasure);
+                }
+            }
+            
+
+            if(index >= 0) {
+                index = Mathf.Min(index, bookmarks.Count - 1);
+                bookmarMeasure = bookmarks[index].time;
+
+                return bookmarMeasure;
+            }
+
+            return CurrentSelectedMeasure;
+        }       
 
         float GetNextStepByObject() {
             if(currentStepType == StepType.Notes) {
@@ -3815,7 +4056,7 @@ namespace MiKu.NET {
 
                 if(crouchs != null && crouchs.Count > 0) {
                     if(crouchs.Contains(CurrentSelectedMeasure)) {
-                        index = crouchs.FindIndex(x => x == CurrentSelectedMeasure) + 1;                    
+                        index = crouchs.FindIndex(x => x == CurrentSelectedMeasure) + 1;             
                     } else {
                         index = crouchs.FindIndex(x => x > CurrentSelectedMeasure); 
                     }
@@ -3824,6 +4065,10 @@ namespace MiKu.NET {
                 if(index >= 0) {
                     index = Mathf.Min(index, crouchs.Count - 1);
                     crouchMeasure = crouchs[index];
+
+                    if(crouchMeasure == CurrentSelectedMeasure) {
+                        crouchMeasure = -1;
+                    }
                 }
 
                 index = -1;
@@ -3841,6 +4086,10 @@ namespace MiKu.NET {
                 if(index >= 0) {
                     index = Mathf.Min(index, slides.Count - 1);
                     slideMeasure = slides[index].time;
+
+                    if(slideMeasure == CurrentSelectedMeasure) {
+                        slideMeasure = -1;
+                    }
                 }
 
                 if(crouchMeasure > 0 && slideMeasure > 0) {
@@ -3909,6 +4158,10 @@ namespace MiKu.NET {
                 if(index >= 0) {
                     index = Mathf.Min(index, crouchs.Count - 1);
                     crouchMeasure = crouchs[index];
+
+                    if(crouchMeasure == CurrentSelectedMeasure) {
+                        crouchMeasure = -1;
+                    }
                 }
 
                 index = -1;
@@ -3926,10 +4179,14 @@ namespace MiKu.NET {
                 if(index >= 0) {
                     index = Mathf.Min(index, slides.Count - 1);
                     slideMeasure = slides[index].time;
+                    
+                    if(slideMeasure == CurrentSelectedMeasure) {
+                        slideMeasure = -1;
+                    }
                 }
 
                 if(crouchMeasure > 0 && slideMeasure > 0) {
-                    return Mathf.Min(crouchMeasure, slideMeasure);
+                    return Mathf.Max(crouchMeasure, slideMeasure);
                 } else {
                     if(crouchMeasure > 0 || slideMeasure > 0) {
                         float tempM = Mathf.Max(crouchMeasure, slideMeasure);
@@ -3951,8 +4208,8 @@ namespace MiKu.NET {
         /// <returns>Returns <typeparamref name="float"/></returns>
         float GetNextStepPoint(bool mouseWheel = false) {
             if(currentStepType == StepType.Measure || mouseWheel) {
-                if(lastMeasureDivider > MBPMIncreaseFactor) { 
-                    CurrentSelectedMeasure = GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, true));
+                if(lastMeasureDivider > MBPMIncreaseFactor || lastStepWasAObject) { 
+                    CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, true)));
                 } else {
                     CurrentSelectedMeasure += (MAX_MEASURE_DIVIDER/MBPMIncreaseFactor);
                 }
@@ -3967,14 +4224,17 @@ namespace MiKu.NET {
                 }
 
                 CurrentSelectedMeasure = CheckForMeasureError(CurrentSelectedMeasure);
+                lastStepWasAObject = false;
             } else {
                 CurrentSelectedMeasure = GetNextStepByObject();
+                lastStepWasAObject = true;
             } 
 
             CurrentTime = GetTimeByMeasure(CurrentSelectedMeasure);
             CurrentTime = Mathf.Min(CurrentTime, (TM-1)*K);
             // Debug.LogError("Current Measure "+CurrentSelectedMeasure);
             /* Debug.LogError("Current measurer divider "+lastMeasureDivider+" target measure "+currentSelectedMeasure+" target time "+CurrentTime); */
+            ShowLastNoteShadow();
             return MStoUnit(CurrentTime);
         }
 
@@ -3987,8 +4247,8 @@ namespace MiKu.NET {
         /// <returns>Returns <typeparamref name="float"/></returns>
         float GetPrevStepPoint(bool mouseWheel = false) {
             if(currentStepType == StepType.Measure || mouseWheel) {
-                if(lastMeasureDivider > MBPMIncreaseFactor) { 
-                    CurrentSelectedMeasure = GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, false));
+                if(lastMeasureDivider > MBPMIncreaseFactor || lastStepWasAObject) { 
+                    CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, false)));
                 } else {
                     CurrentSelectedMeasure -= (MAX_MEASURE_DIVIDER/MBPMIncreaseFactor);
                 }
@@ -4003,14 +4263,17 @@ namespace MiKu.NET {
                 } 
 
                 CurrentSelectedMeasure = CheckForMeasureError(CurrentSelectedMeasure);
+                lastStepWasAObject = false;
             } else {
                 CurrentSelectedMeasure = GetPrevStepByObject();
+                lastStepWasAObject = true;
             } 
 
             CurrentTime = GetTimeByMeasure(CurrentSelectedMeasure);
             CurrentTime = Mathf.Max(0, CurrentTime);
-            /* CurrentSelectedMeasure = Mathf.Round(CurrentSelectedMeasure);
-            Debug.LogError("Current measurer divider "+lastMeasureDivider+" target measure "+currentSelectedMeasure+" target time "+CurrentTime); */
+            ShowLastNoteShadow();
+            // Debug.LogError("Current Measure "+CurrentSelectedMeasure);
+            /* Debug.LogError("Current measurer divider "+lastMeasureDivider+" target measure "+currentSelectedMeasure+" target time "+CurrentTime); */
             return MStoUnit(CurrentTime);
         }
 
@@ -4535,7 +4798,7 @@ namespace MiKu.NET {
 
                                 float tms = UnitToMS(segmentPos.z);
                                 segmentsList.Add(new Segment(
-                                    GetBeatMeasureByTime(tms),
+                                    Mathf.RoundToInt(GetBeatMeasureByTime(tms)),
                                     note,
                                     i,
                                     false
@@ -4683,7 +4946,7 @@ namespace MiKu.NET {
             {
                 List<Note> value;
                 if(dict.TryGetValue(keyToUpdate, out value)) {
-                    float newKey = Mathf.Round(GetBeatMeasureByTime(keyToUpdate));
+                    float newKey = Mathf.RoundToInt(GetBeatMeasureByTime(keyToUpdate));
 
                     // increment the key until arriving at one that doesn't already exist
                     if (dict.ContainsKey(newKey))
@@ -5180,8 +5443,8 @@ namespace MiKu.NET {
         /// <param name="time">Time in Millesconds</param>
         /// <param name="forward">If true the close measure to return will be on the forward direction, otherwise it will be the close passed meassure</param>
         /// <returns>Returns <typeparamref name="float"/></returns>
-        float GetCloseStepMeasure(float time, bool forward = true) {
-            float _CK = ( K*MBPM );
+        float GetCloseStepMeasure(float time, bool forward = true, float forceMBPM = 0) {
+            float _CK = forceMBPM == 0 ? ( K*MBPM ) : ( K*forceMBPM );
             float closeMeasure = 0;
             if( forward) {
                 closeMeasure = time + ( _CK - (time%_CK ) );
@@ -5658,6 +5921,83 @@ namespace MiKu.NET {
         }
 
         /// <summary>
+        /// Change the color of the note found at the passed position
+        /// </summary>
+        /// <param name="targetPosition">Vector3 position in where to find the note to mirror</param>
+        public static void TryChangeColorSelectedNote(Vector3 targetPosition) {
+            LookBackObject foundNote = s_instance.GetNoteAtMeasure(CurrentSelectedMeasure, targetPosition);
+            if(foundNote.note == null || foundNote.isSegment) {
+                // is not note object is found or was a segment we do nothing;
+                return;
+            }
+
+            Note theFoundNote = foundNote.note;
+            if(theFoundNote == null){
+                return;
+            }
+
+            // Mirror routine
+            int totalNotes = 0;
+            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+            if(workingTrack.ContainsKey(CurrentSelectedMeasure)) {
+                List<Note> notes = workingTrack[CurrentSelectedMeasure];
+                totalNotes = notes.Count;
+
+                if(totalNotes >= MAX_ALLOWED_NOTES) {
+                    //Track.LogMessage("Max number of notes reached");
+                    Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_MaxNumberOfNotes);
+                    return;
+                }
+
+                Note.NoteType targetType = Note.NoteType.LeftHanded;
+                if(theFoundNote.Type == Note.NoteType.LeftHanded) {
+                    targetType = Note.NoteType.RightHanded;
+                } else if(theFoundNote.Type == Note.NoteType.RightHanded) {
+                    targetType = Note.NoteType.OneHandSpecial;
+                } else if(theFoundNote.Type == Note.NoteType.OneHandSpecial) {
+                    targetType = Note.NoteType.BothHandsSpecial;
+                } else if(theFoundNote.Type == Note.NoteType.BothHandsSpecial) {
+                    targetType = Note.NoteType.LeftHanded;
+                }
+
+                Vector3 targetPost = new Vector3(
+                    theFoundNote.Position[0],
+                    theFoundNote.Position[1],
+                    theFoundNote.Position[2]
+                );
+
+                GameObject targetToDelete = GameObject.Find(theFoundNote.Id);
+                // print(targetToDelete);
+                if(targetToDelete) {
+                    DestroyImmediate(targetToDelete);
+                }
+                notes.Clear();
+                
+
+                Note n = new Note(targetPost, FormatNoteName(CurrentSelectedMeasure, s_instance.TotalNotes, targetType));
+                n.Type = targetType;
+                if(theFoundNote.Segments != null && theFoundNote.Segments.GetLength(0) > 0) {
+                    n.Segments = new float[theFoundNote.Segments.GetLength(0), 3]; 
+                    for(int i = 0; i < theFoundNote.Segments.GetLength(0); ++i) {
+                        n.Segments[i, 0] = theFoundNote.Segments[i, 0];
+                        n.Segments[i, 1] = theFoundNote.Segments[i, 1];
+                        n.Segments[i, 2] = theFoundNote.Segments[i, 2];
+                    }
+                }
+                s_instance.AddNoteGameObjectToScene(n);
+                notes.Add(n); 
+                
+                if(s_instance.m_FullStatsContainer.activeInHierarchy) {
+                    s_instance.GetCurrentStats();
+                }                
+
+                if(n.Segments != null && n.Segments.GetLength(0) > 0) { 
+                    s_instance.UpdateSegmentsList();
+                }
+            }            
+        }
+
+        /// <summary>
         /// Display the passed <paramref  name="message" /> on the console
         /// </summary>
         /// <param name="message">The message to show</param>
@@ -5718,7 +6058,39 @@ namespace MiKu.NET {
 
             return targetpPos;
         }
-
+		
+		/// <summary>
+        /// Get flipped note handedness
+        /// </summary>
+		public static Note.NoteType GetFlippedNoteType(Note.NoteType tocheck) {
+			if (tocheck == Note.NoteType.LeftHanded){ tocheck = Note.NoteType.RightHanded; }
+			else if (tocheck == Note.NoteType.RightHanded){ tocheck = Note.NoteType.LeftHanded; }
+            return tocheck;
+        }
+		
+		/// <summary>
+        /// Get flipped wall side
+        /// </summary>
+		public static string GetFlippedSlideTag(string tocheck) {
+			switch(tocheck) {
+                        case SLIDE_LEFT_TAG:
+                            tocheck = SLIDE_RIGHT_TAG;
+                            break;
+                        case SLIDE_RIGHT_TAG:
+                            tocheck = SLIDE_LEFT_TAG;
+                            break;
+                        case SLIDE_LEFT_DIAG_TAG:
+                            tocheck = SLIDE_RIGHT_DIAG_TAG;
+                            break;
+                        case SLIDE_RIGHT_DIAG_TAG:
+                            tocheck = SLIDE_LEFT_DIAG_TAG;
+                            break;
+                        default:
+                            break;
+                    }
+            return tocheck;
+        }
+		
         /// <summary>
         /// Add note to chart
         /// </summary>
@@ -5759,6 +6131,7 @@ namespace MiKu.NET {
                 keys_tofilter = keys_tofilter.Where(time => time >= timeRangeDuplicatesStart 
                         && time <= timeRangeDuplicatesEnd).ToList(); */
                 
+                // Debug.LogError((int)CurrentSelectedMeasure + " has notes? "+workingTrack.ContainsKey((int)CurrentSelectedMeasure));
                 if(workingTrack.ContainsKey(CurrentSelectedMeasure)) {
                 //if(keys_tofilter.Count > 0) {
 
@@ -6113,9 +6486,27 @@ namespace MiKu.NET {
         public static void JumpToTime(float time) {
             time = s_instance.GetTimeByMeasure(time);
             time = Mathf.Min(time, s_instance.TrackDuration * MS);
-            CurrentTime = s_instance.GetCloseStepMeasure(time, false);
-            s_instance.MoveCamera(true, s_instance.MStoUnit(CurrentTime));
+            CurrentTime = s_instance.GetCloseStepMeasure(time, false, MAX_MEASURE_DIVIDER);            
             CurrentSelectedMeasure = s_instance.GetBeatMeasureByTime(CurrentTime);
+            s_instance.MoveCamera(true, s_instance.MStoUnit(CurrentTime));
+            if(PromtWindowOpen) {
+                s_instance.ClosePromtWindow();
+            }			
+            s_instance.DrawTrackXSLines();
+            s_instance.ResetResizedList();
+            s_instance.ResetDisabledList();
+        }
+        
+
+        /// <summary>
+        /// Move the camera to the closed measure of the passed time value
+        /// </summary>
+        public static void JumpToMeasure(float measure) {
+            float time = s_instance.GetTimeByMeasure(measure);
+            time = Mathf.Min(time, s_instance.TrackDuration * MS);
+            CurrentTime = time;//s_instance.GetCloseStepMeasure(time, false, MAX_MEASURE_DIVIDER);            
+            CurrentSelectedMeasure = measure; //s_instance.GetBeatMeasureByTime(CurrentTime);
+            s_instance.MoveCamera(true, s_instance.MStoUnit(CurrentTime));
             if(PromtWindowOpen) {
                 s_instance.ClosePromtWindow();
             }			
@@ -7486,6 +7877,7 @@ namespace MiKu.NET {
             gridManager.SeparationSize = (PlayerPrefs.GetFloat(GRIDSIZE_KEY, 0.1365f));
             gridManager.DrawGridLines();
             currentStepType = (StepType)PlayerPrefs.GetInt(STEPTYPE_KEY, 0);
+            showLastPlaceNoted = ( PlayerPrefs.GetInt(LASTPLACENOTE_KEY, 1) > 0) ? true : false;
             ToggleStepType(true);
         }
 
@@ -7502,6 +7894,7 @@ namespace MiKu.NET {
             PlayerPrefs.SetInt(SCROLLSOUND_KEY, doScrollSound);
             PlayerPrefs.SetFloat(GRIDSIZE_KEY, gridManager.SeparationSize);
             PlayerPrefs.SetInt(STEPTYPE_KEY, (int)currentStepType);
+            PlayerPrefs.SetInt(LASTPLACENOTE_KEY, (showLastPlaceNoted) ? 1 : 0);
             // Debug.LogError($"Scroll sound is {doScrollSound}");
         }
 

@@ -141,6 +141,14 @@ namespace Shogoki.Utils {
 		[SerializeField]
 		[TextArea(3, 8)]
 		private string info_NotNotesToCopy = "There is no notes to be copied";
+		
+		[SerializeField]
+		[TextArea(3, 8)]
+		private string info_NoteFlipSuccess = "Pattern mirrored succesfully";
+
+		[SerializeField]
+		[TextArea(3, 8)]
+		private string info_NoteFlipFailure = "Pattern mirror error!";
 
 		[Header("Warning")]
 		[SerializeField]
@@ -570,6 +578,22 @@ namespace Shogoki.Utils {
             get
             {
                 return s_instance.info_NotNotesToCopy;
+            }
+        }
+		
+		public static string Info_NoteFlipSuccess
+        {
+            get
+            {
+                return s_instance.info_NoteFlipSuccess;
+            }
+        }
+		
+		public static string Info_NoteFlipFailure
+        {
+            get
+            {
+                return s_instance.info_NoteFlipFailure;
             }
         }
 
