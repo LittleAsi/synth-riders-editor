@@ -106,7 +106,7 @@ namespace ThirdParty.Custom {
             lastPointPosition = Vector3.zero;
         }
 
-        public void RenderLine(bool refreshLine = false)
+        public void RenderLine(bool refreshLine = false, bool overrideStartOptional = false)
         {
             if(!isChopping || refreshLine)
             {
@@ -120,7 +120,10 @@ namespace ThirdParty.Custom {
 
                     gameObject.transform.localScale = Vector3.one;  
                     int startOptional = targetOptional.GetLength(0) > size ? targetOptional.GetLength(0) - size : 0;    
-                    size = Mathf.RoundToInt( size / (targetOptional.GetLength(0) - startOptional) );   
+                    
+                    if (overrideStartOptional) startOptional = 0;
+                    
+                    size = Mathf.RoundToInt( size / (targetOptional.GetLength(0) - startOptional) );
 
                     linePositions.Add(transform.position);        
                     

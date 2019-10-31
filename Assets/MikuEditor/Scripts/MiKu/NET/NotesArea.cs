@@ -10,6 +10,8 @@ namespace MiKu.NET {
         [SerializeField]
         private GridManager grid;
 
+        [SerializeField] private RailEditor railEditor;
+
         [Space(20)]
         [SerializeField]
         private GameObject m_boundBox;
@@ -115,7 +117,7 @@ namespace MiKu.NET {
             m_boundBox.SetActive(false);
         }
 
-        void EnabledSelectedNote() {
+        public void EnabledSelectedNote() {
             if(selectedNote == null) {
                 selectedNote = Track.GetSelectedNoteMarker();
                 SphereCollider coll = selectedNote.GetComponent<SphereCollider>();
@@ -133,7 +135,7 @@ namespace MiKu.NET {
             }					
         }
 
-        void DisableSelectedNote() {
+        public void DisableSelectedNote() {
             if(selectedNote != null) {
                 GameObject.DestroyImmediate(selectedNote);
                 m_boundBox.SetActive(false);
@@ -183,6 +185,14 @@ namespace MiKu.NET {
             if(Input.GetButtonUp("Input Modifier3")) {
                 isSHIFDown = false;
             }
+			//Test if we're adding to a rail.
+            if (RailEditor.activated && Input.GetMouseButtonDown(0) && selectedNote != null) {
+                railEditor.AddNodeToActiveRail(selectedNote);
+            }
+
+            if (RailEditor.activated && Input.GetMouseButtonDown(1)) {
+                railEditor.RemoveNodeFromActiveRail();
+            }
             
             if (Input.GetMouseButtonDown(0) && selectedNote != null) {
                 if(!isALTDown && !isCTRLDown && !isSHIFDown) {
@@ -206,7 +216,9 @@ namespace MiKu.NET {
 
         void FixedUpdate() {	
             ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if(Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
+            if(!NoteDragger.activated && Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
+                
+                
                 EnabledSelectedNote();
 
                 rayPos = hit.point;

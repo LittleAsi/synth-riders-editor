@@ -60,12 +60,17 @@ public class GridManager : MonoBehaviour
     {
         position -= transform.position;
 
-        int xCount = Mathf.RoundToInt(position.x / SeparationSize);
-        int yCount = Mathf.RoundToInt(position.y / SeparationSize);
-        int zCount = Mathf.RoundToInt(position.z / SeparationSize);
+        double xCount = 0, yCount = 0, zCount = 0;
+        
+        xCount = Mathf.RoundToInt(position.x / SeparationSize);
+        yCount = Mathf.RoundToInt(position.y / SeparationSize);
+        zCount = Mathf.RoundToInt(position.z / SeparationSize);
+            
+       
+        
 
         Vector3 result = new Vector3(
-            (float)xCount * SeparationSize,
+            (float)(xCount * SeparationSize),
             (float)yCount * SeparationSize,
             (float)zCount * SeparationSize);
 

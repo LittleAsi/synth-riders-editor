@@ -295,7 +295,7 @@ namespace MiKu.NET {
 #endregion
 
         // For static access
-        private static Track s_instance;
+        public static Track s_instance;
 
         [SerializeField]
         private string editorVersion = "1.1-alpha.3";
@@ -410,7 +410,7 @@ namespace MiKu.NET {
         private GameObject m_Special2NoteMarkerSegment;
 
         [SerializeField]
-        private float m_NoteSegmentMarkerRedution = 0.5f;	
+        public float m_NoteSegmentMarkerRedution = 0.5f;	
 
         [SerializeField]
         private GameObject m_NotesDropArea;   
@@ -653,6 +653,14 @@ namespace MiKu.NET {
         private float m_CameraNearReductionFactor = 0.5f;
 
         [Space(20)]
+        [Header("Tools")]
+        [SerializeField]
+        private NoteDragger noteDragger;
+        
+        [SerializeField]
+        private RailEditor railEditor;
+
+        [Space(20)]
         [Header("Editor Settings")]
         public bool syncnhWithAudio = false;
 
@@ -733,7 +741,7 @@ namespace MiKu.NET {
         private AudioSource audioSource;
 
         // The current selected type of note marker
-        private Note.NoteType selectedNoteType = Note.NoteType.RightHanded;
+        public Note.NoteType selectedNoteType = Note.NoteType.RightHanded;
 
         // Has the chart been Initiliazed
         private bool isInitilazed = false;
@@ -774,9 +782,9 @@ namespace MiKu.NET {
         private List<GameObject> resizedNotes;
 
         // For when a Long note is being added
-        private bool isOnLongNoteMode = false;
+        public bool isOnLongNoteMode = false;
 
-        private LongNote CurrentLongNote { get; set; }
+        public LongNote CurrentLongNote { get; set; }
 
         private bool turnOffGridOnPlay = false;
 
@@ -1194,31 +1202,54 @@ namespace MiKu.NET {
                     DoSaveAction();					
                 }				
             }
-
+			
             if(Input.GetMouseButtonDown(2)) {
                 if(!PromtWindowOpen && !isPlaying) {
-                    middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
+					if (isCTRLDown){
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						if (_clickedNote != null){
+							if (isALTDown){
+								// CTRL + ALT + MM deletes clicked note
+								Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+								if(workingTrack != null) {
+									GameObject targetToDelete = GameObject.Find(_clickedNote.note.Id);
+									workingTrack[_clickedNote.time].Remove(_clickedNote.note);
+									if(targetToDelete) DestroyImmediate(targetToDelete);
+									UpdateTotalNotes(false, true);
+								}			
+							} else {
+								// CTRL + MM moves cursor to clicked note position
+								JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+							}
+						}
+					} else if (isALTDown){
+						// ALT + MM moves clicked note to cursor position
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+					} else {
+						middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
 
-                    if(MiddleButtonSelectorType == 0 && middleButtonNoteTarget > 1) {
-                        middleButtonNoteTarget = 0;
-                    }
+						if(MiddleButtonSelectorType == 0 && middleButtonNoteTarget > 1) {
+							middleButtonNoteTarget = 0;
+						}
 
-                    if(MiddleButtonSelectorType == 1) {
-                        if(middleButtonNoteTarget < 2 || middleButtonNoteTarget > 3) {
-                            middleButtonNoteTarget = 2;
-                        }						
-                    }
+						if(MiddleButtonSelectorType == 1) {
+							if(middleButtonNoteTarget < 2 || middleButtonNoteTarget > 3) {
+								middleButtonNoteTarget = 2;
+							}						
+						}
 
-                    if(MiddleButtonSelectorType == 2 && middleButtonNoteTarget > 3) {
-                        middleButtonNoteTarget = 0;
-                    }
-                    
-                    /* if(middleButtonNoteTarget > 3) {
-                        middleButtonNoteTarget = 0;						
-                    } */
+						if(MiddleButtonSelectorType == 2 && middleButtonNoteTarget > 3) {
+							middleButtonNoteTarget = 0;
+						}
+						
+						/* if(middleButtonNoteTarget > 3) {
+							middleButtonNoteTarget = 0;						
+						} */
 
-                    SetNoteMarkerType(middleButtonNoteTarget);
-                    markerWasUpdated = true;
+						SetNoteMarkerType(middleButtonNoteTarget);
+						markerWasUpdated = true;
+					}
                 }
             }
 
@@ -1663,6 +1694,10 @@ namespace MiKu.NET {
                 } else {
                     ShowLastNoteShadow();
                 }
+            }
+
+            if(Input.GetKeyDown(KeyCode.N)) {
+                TryAdddNoteToGridCenter();
             }
 #endregion
 
@@ -2369,7 +2404,6 @@ namespace MiKu.NET {
         /// Dodge the time slider's onValueChange actions when setting the value through code.
         /// </summary>
 		public void setTimeSliderWithoutEvent(float _sliderValue){
-		    Debug.Log("TS No Event: " + _sliderValue);
 			timeSliderScriptChange = true;
 			m_TimeSlider.value = _sliderValue;
 			timeSliderScriptChange = false;
@@ -2379,12 +2413,8 @@ namespace MiKu.NET {
         /// Update the current time on slider event
         /// </summary>
 		public void TimeSliderChange(float _sliderValue) {
-		    //Debug.Log("TS Change? " + s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
-		    Debug.Log("TS Change? " + s_instance.GetBeatMeasureByTime(GetCloseStepMeasure(_sliderValue*(TrackDuration*MS))));
 			if(!timeSliderScriptChange){
-			    //JumpToTime(s_instance.GetBeatMeasureByTime(_sliderValue*(TrackDuration*MS)));
 			    JumpToMeasure(s_instance.GetBeatMeasureByTime(GetCloseStepMeasure(_sliderValue*(TrackDuration*MS))));
-				Debug.Log("Yes TS Change");
 			}
 		}
 
@@ -2392,9 +2422,6 @@ namespace MiKu.NET {
         /// Update the current time on time slider bookmark event
         /// </summary>
 		public void TimeSliderBookmarkClick(float _time) {
-		    //Debug.Log("TS BM Click " + s_instance.GetBeatMeasureByTime(_time));
-		    Debug.Log("TS BM Click " + s_instance.GetBeatMeasureByTime(_time));
-			//JumpToTime(s_instance.GetBeatMeasureByTime(_time));
 			JumpToMeasure(s_instance.GetBeatMeasureByTime(_time));
 		}
 		
@@ -3236,10 +3263,14 @@ namespace MiKu.NET {
                 case 3:
                     SelectedCamera = m_FreeViewCamera;
                     cameraLabel = StringVault.Info_FreeCameraLabel;
+                    railEditor.activatedCamera = m_FreeViewCamera.GetComponent<Camera>();
+                    noteDragger.activatedCamera = m_FreeViewCamera.GetComponent<Camera>();
                     break;
                 default:
                     SelectedCamera = m_FrontViewCamera;
                     cameraLabel = (StringVault.s_instance != null) ? StringVault.Info_CenterCameraLabel : "Center Camera";
+                    railEditor.activatedCamera = m_FrontViewCamera.GetComponent<Camera>();
+                    noteDragger.activatedCamera = m_FrontViewCamera.GetComponent<Camera>();
                     break;
             }
 
@@ -3269,7 +3300,7 @@ namespace MiKu.NET {
         }
 
         /// <summary>
-        /// Show the dialog to jump to a specifit time
+        /// Show the dialog to jump to a specific time
         ///</summary>
         public void DoJumpToTimeAction() {
             Miku_JumpToTime.SetMinutePickerLenght(Mathf.RoundToInt(TrackDuration/60) + 1);
@@ -3278,7 +3309,7 @@ namespace MiKu.NET {
         }
 
         /// <summary>
-        /// Show the dialog to jump to a specifit bookmark
+        /// Show the dialog to jump to a specific bookmark
         ///</summary>
         public void ToggleBookmarkJump() {
             if(isBusy || IsPlaying) return;
@@ -4457,7 +4488,7 @@ namespace MiKu.NET {
                     CurrentTime = GetCloseStepMeasure(_currentPlayTime, false);
                 }
 
-                CurrentSelectedMeasure = GetBeatMeasureByTime(CurrentTime);
+                CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime));
             }
 
             _currentPlayTime = 0;
@@ -5035,7 +5066,8 @@ namespace MiKu.NET {
             noteGO.transform.rotation =	Quaternion.identity;
             noteGO.transform.parent = m_NotesHolder;
             noteGO.name = noteData.Id;
-
+			float _beatTime = Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(noteData.Position[2])));
+            AddBeatTimeToObject(noteGO, _beatTime, noteData.Type);			
             // if note has segments we added it
             if(noteData.Segments != null && noteData.Segments.Length > 0) {
                 AddNoteSegmentsObject(noteData, noteGO.transform.Find("LineArea"));
@@ -5046,6 +5078,12 @@ namespace MiKu.NET {
             }
 
             return noteGO;
+        }
+		
+		public void AddBeatTimeToObject(GameObject go, float beatTime, Note.NoteType type) {
+            var tempBeatTimeRef = go.AddComponent<TempBeatTimeRef>();
+            tempBeatTimeRef.beatTime = beatTime;
+            tempBeatTimeRef.type = type;
         }
 
         /// <summary>
@@ -5262,7 +5300,7 @@ namespace MiKu.NET {
         /// <summary>
         /// Finalize the LongNote mode functionality and remove any incomplete elements
         /// </summary>
-        void FinalizeLongNoteMode() {
+        public void FinalizeLongNoteMode(LongNote longNote = new LongNote()) {
             if(isOnLongNoteMode) {
                 isOnLongNoteMode = false;
                 bool abortLongNote = false;
@@ -5286,7 +5324,15 @@ namespace MiKu.NET {
                     if(workingTrack != null) {
                         if(!workingTrack.ContainsKey(CurrentLongNote.startBeatMeasure)) {
                             workingTrack.Add(CurrentLongNote.startBeatMeasure, new List<Note>());
-                        } 
+                        }
+                        
+                        //This is so janky but as long as it works :D
+                        bool isCircuitsThing = false;
+                        
+                        if (longNote.gameObject) {
+                            CurrentLongNote = longNote;
+                            isCircuitsThing = true;
+                        }
 
                         if(CurrentLongNote.note.Segments == null) {
                             CurrentLongNote.note.Segments = new float[CurrentLongNote.segments.Count, 3];
@@ -5315,7 +5361,7 @@ namespace MiKu.NET {
                         Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_LongNoteModeFinalized);
                         
                         UpdateTotalNotes();
-                        RenderLine(CurrentLongNote.gameObject, CurrentLongNote.note.Segments);
+                        RenderLine(CurrentLongNote.gameObject, CurrentLongNote.note.Segments, true, isCircuitsThing);
                         AddTimeToSFXList(CurrentLongNote.startTime);
 
                         if(CurrentLongNote.mirroredNote != null) {
@@ -5365,10 +5411,22 @@ namespace MiKu.NET {
             }
         }
 
+
+        public void UpdateEditorLongNoteData() {
+            var longNoteData = CurrentLongNote.gameObject.GetComponent<EditorLongNoteData>();
+
+            if (longNoteData) {
+                longNoteData.longNote = CurrentLongNote;
+            }
+            else {
+                CurrentLongNote.gameObject.AddComponent<EditorLongNoteData>().longNote = CurrentLongNote;
+            }
+        }
+
         /// <summary>
         /// Add a Segment to the current longnote
         /// </summary>
-        void AddLongNoteSegment(GameObject note) {
+        public void AddLongNoteSegment(GameObject note, LongNote longNote = new LongNote()) {
             // check if the insert time if less that the start time
             if(CurrentTime <= CurrentLongNote.startTime) {
                 Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_LongNoteStartPoint);
@@ -5376,6 +5434,11 @@ namespace MiKu.NET {
             }
 
             LongNote workingLongNote = CurrentLongNote;
+
+            if (longNote.gameObject) {
+                workingLongNote = longNote;
+            }
+            
             // if there is not segments initialize the List
             if(workingLongNote.segments == null) {
                 workingLongNote.segments = new List<GameObject>();
@@ -5783,10 +5846,10 @@ namespace MiKu.NET {
         /// Render the line passing the segments
         /// </summary>
         /// <param name="segments">The segements for where the line will pass</param>
-        void RenderLine(GameObject noteGameObject, float[,] segments, bool refresh = false) {
+        void RenderLine(GameObject noteGameObject, float[,] segments, bool refresh = false, bool overrideStartOptional = false) {
             Game_LineWaveCustom waveCustom = noteGameObject.GetComponentInChildren<Game_LineWaveCustom>();
             waveCustom.targetOptional = segments;
-            waveCustom.RenderLine(refresh);
+            waveCustom.RenderLine(refresh, overrideStartOptional);
         }
 
         /// <summary>
@@ -5859,6 +5922,60 @@ namespace MiKu.NET {
                 )
             );
         }		
+
+        /// <summary>
+        /// Add a note to the center of the grid, can be use wile the song is playing
+        /// </summary>
+        public void TryAdddNoteToGridCenter() {
+            if(PromtWindowOpen || isOnLongNoteMode) { return; }          
+
+            
+            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+            float targetMeasure = CurrentSelectedMeasure;
+            if(isPlaying) {
+                float _CK = ( K*MBPM );
+                float tempTime;
+                if( (_currentPlayTime%_CK) / _CK >= 0.5f ) {
+                    tempTime = GetCloseStepMeasure(_currentPlayTime);                    
+                } else {
+                    tempTime = GetCloseStepMeasure(_currentPlayTime, false);
+                }
+
+                targetMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(tempTime));            
+            } 
+            
+            if(GetTimeByMeasure(targetMeasure) < MIN_NOTE_START * MS) {
+                Miku_DialogManager.ShowDialog(
+                    Miku_DialogManager.DialogType.Alert, 
+                    string.Format(
+                        StringVault.Info_NoteTooClose,
+                        MIN_NOTE_START
+                    )
+                );
+
+                return;
+            }
+
+            // if there are a note in the current beat, we do nothing
+            if(workingTrack.ContainsKey(targetMeasure)) {
+                return;
+            }  
+
+            Note n = new Note(gridManager.GetNearestPointOnGrid(new Vector3(0, 0, MStoUnit(GetTimeByMeasure(targetMeasure)))), FormatNoteName(targetMeasure, 1, Note.NoteType.LeftHanded));
+            n.Type = Note.NoteType.LeftHanded;
+            AddNoteGameObjectToScene(n);
+
+            List<Note> notes = new List<Note>();
+            notes.Add(n);
+            workingTrack.Add(targetMeasure, notes); 
+            AddTimeToSFXList(GetTimeByMeasure(targetMeasure));
+
+            s_instance.UpdateTotalNotes();
+            if(s_instance.m_FullStatsContainer.activeInHierarchy) {
+                s_instance.GetCurrentStats();
+            }
+                    
+        }
 
 #region Statics Methods
         
@@ -5996,6 +6113,112 @@ namespace MiKu.NET {
                 }
             }            
         }
+		
+		/// <summary>
+        /// Move a note to a new time
+        /// </summary>
+        public static void TryMoveNote(float _beat, EditorNote _note) {
+			if (_note.type == EditorNoteType.Standard || _note.type == EditorNoteType.RailStart) {
+				Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+				if(workingTrack != null) {
+					Note sourceNote = _note.note;
+					List<Note> notesAtSource = workingTrack[_note.time];
+					List<Note> notesAtTarget;
+					if(workingTrack.ContainsKey(_beat)) {
+						notesAtTarget = workingTrack[_beat];
+					} else {
+						notesAtTarget = new List<Note>();
+					}
+					if (isNewNotePositionValid(_beat, sourceNote)){
+						Vector3 targetPos = new Vector3(
+							sourceNote.Position[0],
+							sourceNote.Position[1],
+							CurrentUnityUnit
+						);
+						Note.NoteType targetType = sourceNote.Type;
+						Note n = new Note(targetPos, FormatNoteName(_beat, s_instance.TotalNotes, targetType));
+						n.Type = targetType;
+						if(sourceNote.Segments != null && sourceNote.Segments.GetLength(0) > 0) {
+							n.Segments = new float[sourceNote.Segments.GetLength(0), 3]; 
+							for(int i = 0; i < sourceNote.Segments.GetLength(0); ++i) {
+								n.Segments[i, 0] = sourceNote.Segments[i, 0];
+								n.Segments[i, 1] = sourceNote.Segments[i, 1];
+								n.Segments[i, 2] = sourceNote.Segments[i, 2];
+							}
+						}
+						s_instance.AddNoteGameObjectToScene(n);
+						notesAtTarget.Add(n);
+						if(!workingTrack.ContainsKey(_beat)) workingTrack.Add(_beat, notesAtTarget);
+						GameObject targetToDelete = GameObject.Find(sourceNote.Id);
+						notesAtSource.Remove(sourceNote);
+						if(targetToDelete) DestroyImmediate(targetToDelete);
+						if(s_instance.m_FullStatsContainer.activeInHierarchy) {
+							s_instance.GetCurrentStats();
+						}                
+
+						if(n.Segments != null && n.Segments.GetLength(0) > 0) { 
+							s_instance.UpdateSegmentsList();
+						}
+					}          
+				}
+			}
+		}
+		
+		/// <summary>
+        /// Check if a note would be valid on a different beat
+        /// </summary>
+		public static bool isNewNotePositionValid(float _beat, Note _note){
+			// first we check if theres is any note in that time period
+			// We need to check the track difficulty selected
+			Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+			if(workingTrack != null) {
+				if(s_instance.isOnLongNoteMode && s_instance.CurrentLongNote.gameObject != null) {
+					Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_LongNoteNotFinalized);
+					return false;
+				}
+				if(workingTrack.ContainsKey(CurrentSelectedMeasure)) {
+					List<Note> notes = workingTrack[CurrentSelectedMeasure];
+					int totalNotes = notes.Count;
+
+					// Check for overlaping notes
+					for(int i = 0; i < totalNotes; ++i) {
+						Note overlap = notes[i];
+
+						if(ArePositionsOverlaping(
+							new Vector3(_note.Position[0],
+								_note.Position[1],
+								s_instance.MStoUnit(s_instance.GetTimeByMeasure(_beat))),
+							new Vector3(overlap.Position[0],
+								overlap.Position[1],
+								overlap.Position[2])
+							)){
+							Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, "New position would overlap with an existing note");
+							return false;
+						}
+					}
+					// Both hand notes only allowed 1 total
+					// RightHanded/Left Handed notes only allowed 1 of their types
+					Note notesOfType = notes.Find(x => x.Type == Note.NoteType.BothHandsSpecial || x.Type == Note.NoteType.OneHandSpecial);
+					if(notesOfType != null) {
+						Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_MaxNumberOfSpecialNotes);
+						return false;
+					} else {
+						notesOfType = notes.Find(x => x.Type == _note.Type);
+						if(notesOfType != null) {
+							Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, string.Format(StringVault.Alert_MaxNumberOfTypeNotes, _note.Type.ToString()));
+							return false;
+						} else if(totalNotes>0 && (_note.Type == Note.NoteType.OneHandSpecial || _note.Type == Note.NoteType.BothHandsSpecial)) {
+							Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_MaxNumberOfSpecialNotes);
+							return false;
+						}
+					}
+				}
+				else {
+					return true;				
+				}
+			}
+			return true;
+		}
 
         /// <summary>
         /// Display the passed <paramref  name="message" /> on the console
@@ -6321,6 +6544,14 @@ namespace MiKu.NET {
         /// <param name="noteType">The type of note to look for, default is <see cref="Note.NoteType.RightHanded" /></param>
         public static string FormatNoteName(float _ms, int index, Note.NoteType noteType = Note.NoteType.RightHanded) {
             return (_ms.ToString("R")+noteType.ToString()+index).ToString();
+        }
+
+        public static Note TryGetNoteFromBeatTimeType(float beatTime, Note.NoteType type) {
+            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+            List<Note> testNotes = new List<Note>();
+            testNotes = workingTrack[beatTime];
+            if (testNotes[0].Type == type) return testNotes[0];
+            else return testNotes[1];
         }
 
         /// <summary>
@@ -6843,7 +7074,7 @@ namespace MiKu.NET {
         /// </summary>
         /// <param name="noteType">The type of note to look for, default is <see cref="Note.NoteType.LeftHanded" /></param>
         /// <returns>Returns <typeparamref name="GameObject"/></returns>
-        GameObject GetNoteMarkerByType(Note.NoteType noteType = Note.NoteType.LeftHanded, bool isSegment = false) {
+        public GameObject GetNoteMarkerByType(Note.NoteType noteType = Note.NoteType.LeftHanded, bool isSegment = false) {
             switch(noteType) {
                 case Note.NoteType.LeftHanded:
                     return isSegment ? m_LefthandNoteMarkerSegment : m_LefthandNoteMarker;
@@ -7203,7 +7434,7 @@ namespace MiKu.NET {
         /// Get The current track difficulty based on the selected difficulty
         /// </summary>
         /// <returns>Returns <typeparamref name="Dictionary<float, List<Note>>"/></returns>
-        Dictionary<float, List<Note>> GetCurrentTrackDifficulty() {
+        public Dictionary<float, List<Note>> GetCurrentTrackDifficulty() {
             if(CurrentChart == null) return null;
 
             switch(CurrentDifficulty) {
