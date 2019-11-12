@@ -1203,29 +1203,66 @@ namespace MiKu.NET {
                 }				
             }
 			
+            if(Input.GetMouseButtonDown(0)) {
+				if(!PromtWindowOpen && !isPlaying) {
+					if (isALTDown && isCTRLDown){
+						// CTRL + ALT + LM adds mirror
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+					}
+					else if (isALTDown && !isCTRLDown){
+						// ALT + LM moves clicked note to cursor position, or starts note drag if already on the cursor position
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						if (Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z)))==CurrentSelectedMeasure){
+							noteDragger.StartNewDrag();
+						} else {
+							TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+						}
+					}
+				}
+			}
+			
+			if(Input.GetMouseButtonDown(1)) {
+				if(!PromtWindowOpen && !isPlaying) {
+					if (isALTDown && !isCTRLDown){
+						// Alt + RM moves cursor to clicked note position
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+					} else if (isCTRLDown && !isALTDown){
+						// CTRL + RM deletes clicked note
+						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						if (_clickedNote != null){
+							Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+							if(workingTrack != null && (_clickedNote.type == EditorNoteType.Standard || _clickedNote.type == EditorNoteType.RailStart)) {
+								List<Note> notesAtTime = workingTrack[_clickedNote.time];
+								int totalNotes = notesAtTime.Count;
+								GameObject targetToDelete = GameObject.Find(_clickedNote.note.Id);
+								notesAtTime.Remove(_clickedNote.note);
+								totalNotes--;
+								if (totalNotes<=0){
+									notesAtTime.Clear();
+									workingTrack.Remove(_clickedNote.time);
+									hitSFXSource.Remove(s_instance.GetTimeByMeasure(_clickedNote.time));
+								}
+								if(targetToDelete) DestroyImmediate(targetToDelete);
+								UpdateTotalNotes(false, true);
+							}	
+						}
+					}
+				}
+			}
+			
             if(Input.GetMouseButtonDown(2)) {
                 if(!PromtWindowOpen && !isPlaying) {
 					if (isCTRLDown){
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						if (_clickedNote != null){
+						//EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+						//if (_clickedNote != null){
 							if (isALTDown){
-								// CTRL + ALT + MM deletes clicked note
-								Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
-								if(workingTrack != null) {
-									GameObject targetToDelete = GameObject.Find(_clickedNote.note.Id);
-									workingTrack[_clickedNote.time].Remove(_clickedNote.note);
-									if(targetToDelete) DestroyImmediate(targetToDelete);
-									UpdateTotalNotes(false, true);
-								}			
+								// CTRL + ALT + MM does nothing at the moment		
 							} else {
-								// CTRL + MM moves cursor to clicked note position
-								JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+								// CTRL + MM does nothing at the moment	
 							}
-						}
-					} else if (isALTDown){
-						// ALT + MM moves clicked note to cursor position
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+						//}
 					} else {
 						middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
 
@@ -6123,6 +6160,7 @@ namespace MiKu.NET {
 				if(workingTrack != null) {
 					Note sourceNote = _note.note;
 					List<Note> notesAtSource = workingTrack[_note.time];
+					int numNotesAtSource = notesAtSource.Count;
 					List<Note> notesAtTarget;
 					if(workingTrack.ContainsKey(_beat)) {
 						notesAtTarget = workingTrack[_beat];
@@ -6148,9 +6186,16 @@ namespace MiKu.NET {
 						}
 						s_instance.AddNoteGameObjectToScene(n);
 						notesAtTarget.Add(n);
+						s_instance.AddTimeToSFXList(s_instance.GetTimeByMeasure(_beat));
 						if(!workingTrack.ContainsKey(_beat)) workingTrack.Add(_beat, notesAtTarget);
 						GameObject targetToDelete = GameObject.Find(sourceNote.Id);
 						notesAtSource.Remove(sourceNote);
+						numNotesAtSource--;
+						if (numNotesAtSource<=0){ 
+							notesAtSource.Clear();
+							workingTrack.Remove(_note.time);
+							s_instance.hitSFXSource.Remove(s_instance.GetTimeByMeasure(_note.time));
+						}
 						if(targetToDelete) DestroyImmediate(targetToDelete);
 						if(s_instance.m_FullStatsContainer.activeInHierarchy) {
 							s_instance.GetCurrentStats();

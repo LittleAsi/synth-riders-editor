@@ -178,11 +178,12 @@ public class RailEditor : MonoBehaviour {
 		int totalFilteredTime = keysOrdered_ToFilter.Count - 1;
 		for (int filterList = totalFilteredTime; filterList >= 0; filterList--) {
 			// If the time key exist, check how many notes are added
-			float targetTime = keysOrdered_ToFilter[filterList];
+			//float targetTime = Track.GetTimeByMeasure(keysOrdered_ToFilter[filterList]);
+			float targetBeat = keysOrdered_ToFilter[filterList];
 
-			if (targetTime > Track.CurrentTime) continue;
+			if (targetBeat > Track.CurrentSelectedMeasure) continue;
 
-			List<Note> notes = workingTrack[targetTime];
+			List<Note> notes = workingTrack[targetBeat];
 			int totalNotes = notes.Count;
 
 			foreach (Note n in notes) {
@@ -193,7 +194,7 @@ public class RailEditor : MonoBehaviour {
 					railStart.note = n;
 					railStart.type = EditorNoteType.RailStart;
 					railStart.noteGO = GameObject.Find(n.Id);
-					railStart.time = targetTime;
+					railStart.time = targetBeat;
 					railStart.exists = true;
 					
 					railStart.GetConnectedNodes();

@@ -39,10 +39,10 @@ public class NoteDragger : MonoBehaviour {
 
 		if (!activated) return;
 
-
-		if (Input.GetMouseButtonDown(0)) {
+		// Moved to Track.cs
+/* 		if (Input.GetMouseButtonDown(0)) { 
 			StartNewDrag();
-		}
+		} */
 
 		if (isDragging && selectedNote.exists) {
 			Vector3 snappedPos = gridManager.GetNearestPointOnGrid(GetPosOnGridFromMouse());
@@ -68,7 +68,7 @@ public class NoteDragger : MonoBehaviour {
 	}
 
 
-	private void StartNewDrag() {
+	public void StartNewDrag() {
 		selectedNote = NoteRayUtil.NoteUnderMouse(activatedCamera, notesLayer);
 		isDragging = true;
 	}

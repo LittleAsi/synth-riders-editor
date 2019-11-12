@@ -205,8 +205,9 @@ namespace MiKu.NET {
                         Track.AddNoteToChart(selectedNote);
                     }	
                 } else {
-                    if(isCTRLDown && !isALTDown && !isSHIFDown) {
-                        Track.TryMirrorSelectedNote(selectedNote.transform.position);
+                    if(isCTRLDown && isALTDown && !isSHIFDown) {
+						//Moved to Track.cs
+                        //Track.TryMirrorSelectedNote(selectedNote.transform.position);
                     } else if(isSHIFDown && !isALTDown && !isCTRLDown) { 
                         Track.TryChangeColorSelectedNote(selectedNote.transform.position);
                     }
@@ -218,8 +219,10 @@ namespace MiKu.NET {
             ray = Camera.main.ScreenPointToRay(Input.mousePosition);
             if(!NoteDragger.activated && Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
                 
-                
                 EnabledSelectedNote();
+				
+                //if (isCTRLDown) { DisableSelectedNote(); }
+				//else { EnabledSelectedNote(); }
 
                 rayPos = hit.point;
                 rayPos.z = (float)Track.CurrentUnityUnit;
