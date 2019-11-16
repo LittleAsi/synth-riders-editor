@@ -10,6 +10,8 @@ namespace MiKu.NET {
         [SerializeField]
         private GridManager grid;
 
+        [SerializeField] private RailEditor railEditor;
+
         [Space(20)]
         [SerializeField]
         private GameObject m_boundBox;
@@ -115,7 +117,7 @@ namespace MiKu.NET {
             m_boundBox.SetActive(false);
         }
 
-        void EnabledSelectedNote() {
+        public void EnabledSelectedNote() {
             if(selectedNote == null) {
                 selectedNote = Track.GetSelectedNoteMarker();
                 SphereCollider coll = selectedNote.GetComponent<SphereCollider>();
@@ -133,7 +135,7 @@ namespace MiKu.NET {
             }					
         }
 
-        void DisableSelectedNote() {
+        public void DisableSelectedNote() {
             if(selectedNote != null) {
                 GameObject.DestroyImmediate(selectedNote);
                 m_boundBox.SetActive(false);
@@ -183,6 +185,14 @@ namespace MiKu.NET {
             if(Input.GetButtonUp("Input Modifier3")) {
                 isSHIFDown = false;
             }
+			//Test if we're adding to a rail.
+            if (RailEditor.activated && Input.GetMouseButtonDown(0) && selectedNote != null) {
+                railEditor.AddNodeToActiveRail(selectedNote);
+            }
+
+            if (RailEditor.activated && Input.GetMouseButtonDown(1)) {
+                railEditor.RemoveNodeFromActiveRail();
+            }
             
             if (Input.GetMouseButtonDown(0) && selectedNote != null) {
                 if(!isALTDown && !isCTRLDown && !isSHIFDown) {
@@ -195,8 +205,9 @@ namespace MiKu.NET {
                         Track.AddNoteToChart(selectedNote);
                     }	
                 } else {
-                    if(isCTRLDown && !isALTDown && !isSHIFDown) {
-                        Track.TryMirrorSelectedNote(selectedNote.transform.position);
+                    if(isCTRLDown && isALTDown && !isSHIFDown) {
+						//Moved to Track.cs
+                        //Track.TryMirrorSelectedNote(selectedNote.transform.position);
                     } else if(isSHIFDown && !isALTDown && !isCTRLDown) { 
                         Track.TryChangeColorSelectedNote(selectedNote.transform.position);
                     }
@@ -206,8 +217,12 @@ namespace MiKu.NET {
 
         void FixedUpdate() {	
             ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if(Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
+            if(!NoteDragger.activated && Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
+                
                 EnabledSelectedNote();
+				
+                //if (isCTRLDown) { DisableSelectedNote(); }
+				//else { EnabledSelectedNote(); }
 
                 rayPos = hit.point;
                 rayPos.z = (float)Track.CurrentUnityUnit;

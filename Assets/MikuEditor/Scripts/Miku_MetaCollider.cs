@@ -39,8 +39,8 @@ public class Miku_MetaCollider : MonoBehaviour {
 
 				GameObject collisionEffect = gameObjectsStack[nextOnQueue];
 				collisionEffect.transform.localPosition = new Vector3(
-					targetTransform.localPosition.x,
-					targetTransform.localPosition.y,
+					targetTransform.position.x,
+					targetTransform.position.y,
 					0
 				);
 				collisionEffect.transform.parent = m_parentHolder;
