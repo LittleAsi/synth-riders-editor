@@ -1208,15 +1208,19 @@ namespace MiKu.NET {
 					if (isALTDown && isCTRLDown){
 						// CTRL + ALT + LM adds mirror
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+                        if(_clickedNote != null && _clickedNote.noteGO != null) {
+                            TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+                        }						
 					}
 					else if (isALTDown && !isCTRLDown){
 						// ALT + LM moves clicked note to cursor position, or starts note drag if already on the cursor position
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						if (Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z)))==CurrentSelectedMeasure){
+						if (_clickedNote != null && _clickedNote.noteGO != null && Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z)))==CurrentSelectedMeasure){
 							noteDragger.StartNewDrag();
 						} else {
-							TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+                            if(_clickedNote != null && _clickedNote.noteGO != null) {
+							    TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+                            }
 						}
 					}
 				}
@@ -1227,11 +1231,13 @@ namespace MiKu.NET {
 					if (isALTDown && !isCTRLDown){
 						// Alt + RM moves cursor to clicked note position
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+                        if(_clickedNote != null && _clickedNote.noteGO != null) {
+                            JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+                        }						
 					} else if (isCTRLDown && !isALTDown){
 						// CTRL + RM deletes clicked note
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						if (_clickedNote != null){
+						if (_clickedNote != null && _clickedNote.noteGO != null){
 							Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
 							if(workingTrack != null && (_clickedNote.type == EditorNoteType.Standard || _clickedNote.type == EditorNoteType.RailStart)) {
 								List<Note> notesAtTime = workingTrack[_clickedNote.time];
@@ -1246,6 +1252,12 @@ namespace MiKu.NET {
 								}
 								if(targetToDelete) DestroyImmediate(targetToDelete);
 								UpdateTotalNotes(false, true);
+
+                                if(m_FullStatsContainer.activeInHierarchy) {
+                                    GetCurrentStats();
+                                }
+
+                                UpdateSegmentsList();
 							}	
 						}
 					}
@@ -4832,7 +4844,7 @@ namespace MiKu.NET {
             UpdateSegmentsList();
         }
 
-        private void UpdateSegmentsList()
+        public void UpdateSegmentsList()
         {
             segmentsList.Clear();
             Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
@@ -8238,7 +8250,7 @@ namespace MiKu.NET {
             }
         }
 
-        private void GetCurrentStats() {
+        public void GetCurrentStats() {
             if(statsSTRBuilder == null) {
                 statsSTRBuilder = new StringBuilder();
             } else {
@@ -8663,6 +8675,27 @@ namespace MiKu.NET {
         public static TrackInfo TrackInfo {
             get {
                 return s_instance.trackInfo;
+            }
+        }
+
+        public GameObject FullStatsContainer
+        {
+            get
+            {
+                return m_FullStatsContainer;
+            }
+
+            set
+            {
+                m_FullStatsContainer = value;
+            }
+        }
+
+        public List<Segment> SegmentsList
+        {
+            get
+            {
+                return segmentsList;
             }
         }
         #endregion

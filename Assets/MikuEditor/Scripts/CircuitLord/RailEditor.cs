@@ -41,7 +41,7 @@ public class RailEditor : MonoBehaviour {
 	public void RemoveNodeFromActiveRail() {
 		EditorNote note = NoteRayUtil.NoteUnderMouse(activatedCamera, notesLayer);
 
-		if (note.exists && note.type != EditorNoteType.RailNode) return;
+		if (note == null || note.noteGO == null || (note.exists && note.type != EditorNoteType.RailNode)) return;
 		
 		Game_LineWaveCustom waveCustom = note.noteGO.transform.parent.GetComponentInChildren<Game_LineWaveCustom>();
 
@@ -56,10 +56,13 @@ public class RailEditor : MonoBehaviour {
 			waveCustom.targetOptional = segments;
 			
 			waveCustom.RenderLine(true, true);
+
+			if(Track.s_instance.FullStatsContainer.activeInHierarchy) {
+                Track.s_instance.GetCurrentStats();
+            }
+
+			Track.s_instance.UpdateSegmentsList();
 		}
-
-
-
 
 	}
 
@@ -73,6 +76,11 @@ public class RailEditor : MonoBehaviour {
 		activeRail = FindNearestRailBack();
 		
 		if (!activeRail.exists) return;
+
+		List<Segment> segments = Track.s_instance.SegmentsList.FindAll(x => x.measure == Track.CurrentSelectedMeasure && x.note.Type == selectedNoteType);
+		if(segments != null && segments.Count > 0) { 
+			return;
+		}
 
 		GameObject noteGO = GameObject.Instantiate(Track.s_instance.GetNoteMarkerByType(selectedNoteType, true));
 		noteGO.transform.localPosition = go.transform.position;
@@ -105,8 +113,13 @@ public class RailEditor : MonoBehaviour {
 		if (waveCustom) {
 			waveCustom.targetOptional = poses;
 			waveCustom.RenderLine(true, true);
+
+			if(Track.s_instance.FullStatsContainer.activeInHierarchy) {
+                Track.s_instance.GetCurrentStats();
+            }
+
+			Track.s_instance.UpdateSegmentsList();
 		}
-		
 	}
 	
 	

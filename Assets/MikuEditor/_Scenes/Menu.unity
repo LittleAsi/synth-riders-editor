@@ -9655,7 +9655,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_TermsHolder: {fileID: 1383288674}
   m_termsAnimator: {fileID: 1383288676}
-  editorVersion: 1.9.3
+  editorVersion: 1.9.4
   editorName: SynthRiders Editor v{0}
 --- !u!1 &402065531
 GameObject:
@@ -11133,7 +11133,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 1.9.3-3
+  m_Text: 1.9.4
 --- !u!222 &492468736
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -36365,6 +36365,8 @@ MonoBehaviour:
   info_UserOnSpecialSection: Working on the Special Section
   info_UserOnLongNoteMode: Working on Long Note Section
   info_NotNotesToCopy: There are no notes to be copied
+  info_NoteFlipSuccess: Pattern mirrored succesfully
+  info_NoteFlipFailure: Pattern mirror error!
   info_ClipBoardEmpty: The clipboard is empty
   info_NotesCopied: Notes copied succesfully
   info_FileSaved: Beatmap Saved!
