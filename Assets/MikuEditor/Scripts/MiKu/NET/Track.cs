@@ -754,6 +754,8 @@ namespace MiKu.NET {
         private bool isCTRLDown = false;
         private bool isALTDown = false;
         private bool isSHIFDown = false;
+        private bool isKeyboardAddNoteDown = false;
+        private bool needToAddKeyboardNote = false;
         //
 
         private float lastBPM = 120f;
@@ -1043,6 +1045,22 @@ namespace MiKu.NET {
                 isALTDown = false;
             }
 
+            if(Input.GetKeyDown(KeyCode.N))
+            {
+                isKeyboardAddNoteDown = true;
+                if(isPlaying) {
+                    TryAdddNoteToGridCenter();
+                }
+            }
+
+            // Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)
+            if(Input.GetKeyUp(KeyCode.N)) {
+                if(isKeyboardAddNoteDown && !isPlaying && !promtWindowOpen) {
+                    notesArea.AddNoteOnClick();
+                }
+                isKeyboardAddNoteDown = false;
+            }
+
             // Input.GetKeyDown(KeyCode.LeftAlt)
             if(Input.GetButtonDown("Input Modifier3")) {
                 if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying) {
@@ -1063,17 +1081,26 @@ namespace MiKu.NET {
 #region Keyboard Shorcuts
             // Change Step and BPM
             // Input.GetKey(KeyCode.RightArrow)
-            if( Input.GetAxis("Horizontal") != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
+            float hortAxis = 0;            
+            if(Input.GetAxis("Horizontal")!= 0) {
+                hortAxis = Input.GetAxis("Horizontal");
+            }
+            if(Input.GetAxis("Horizontal Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
+                hortAxis = Input.GetAxis("Horizontal Free Camera");
+            }
+
+            if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
                 if(!IsPlaying) {
                     
-                    /* if(isCTRLDown) { m_BPMSlider.value = BPM + 1; }
-                    else { ChangeStepMeasure(true); }	 */		
-                    if(!isCTRLDown) {
-                        ChangeStepMeasure(Input.GetAxis("Horizontal") > 0);
-                    }		
+                    if(!isKeyboardAddNoteDown) {
+                        if(!isCTRLDown) {
+                            ChangeStepMeasure(hortAxis > 0);
+                        }
+                    } 
+                    		
                 } else {
-                    ChangePlaySpeed(Input.GetAxis("Horizontal") > 0);
+                    ChangePlaySpeed(hortAxis > 0);
                 }
                 nextKeyHold = nextKeyHold - keyHoldTime;
                 keyHoldTime = 0.0f;				
@@ -1094,10 +1121,12 @@ namespace MiKu.NET {
             if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown) {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
 
-                if(!isPlaying) {
-                    MoveCamera(true, GetPrevStepPoint());
-                    DrawTrackXSLines();
-                    PlayStepPreview();
+                if(!IsPlaying) {
+                    if(!isKeyboardAddNoteDown) {
+                        MoveCamera(true, GetPrevStepPoint());
+                        DrawTrackXSLines();
+                        PlayStepPreview();
+                    }                    
                 } else {
                     TogglePlay();                    
                     MoveCamera(true, GetPrevStepPoint());
@@ -1115,9 +1144,11 @@ namespace MiKu.NET {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
 
                 if(!isPlaying) {
-                    MoveCamera(true, GetNextStepPoint());
-                    DrawTrackXSLines();
-                    PlayStepPreview();
+                    if(!isKeyboardAddNoteDown) {
+                        MoveCamera(true, GetNextStepPoint());
+                        DrawTrackXSLines();
+                        PlayStepPreview();
+                    }
                 } else {
                     TogglePlay();
                     MoveCamera(true, GetNextStepPoint());
@@ -1352,10 +1383,10 @@ namespace MiKu.NET {
                 }			
             }
 
-            if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera) {
+            if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(false);
             }
-            else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera) {
+            else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(true);
             }
 
@@ -1472,11 +1503,7 @@ namespace MiKu.NET {
                     } else if(isCTRLDown) {
                         ChangeStepMeasure(true);
                     }
-
-
-                }
-
-                			
+                }                			
             }
             else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen) // backwards
             {
@@ -1746,9 +1773,18 @@ namespace MiKu.NET {
                 }
             }
 
-            if(Input.GetKeyDown(KeyCode.N)) {
+
+            /* if(Input.GetKeyDown(KeyCode.N)) {
                 TryAdddNoteToGridCenter();
-            }
+            } */
+
+            if(!isALTDown && !promtWindowOpen) {
+                notesArea.IsOnKeyboardEditMode = isKeyboardAddNoteDown;
+                if(isKeyboardAddNoteDown) {
+                    notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
+                }
+            } 
+            
 #endregion
 
             if(markerWasUpdated) {
