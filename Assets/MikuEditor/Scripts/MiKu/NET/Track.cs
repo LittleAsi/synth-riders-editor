@@ -754,6 +754,8 @@ namespace MiKu.NET {
         private bool isCTRLDown = false;
         private bool isALTDown = false;
         private bool isSHIFDown = false;
+        private bool isKeyboardAddNoteDown = false;
+        private bool needToAddKeyboardNote = false;
         //
 
         private float lastBPM = 120f;
@@ -1043,6 +1045,22 @@ namespace MiKu.NET {
                 isALTDown = false;
             }
 
+            if(Input.GetKeyDown(KeyCode.N))
+            {
+                isKeyboardAddNoteDown = true;
+                if(isPlaying) {
+                    TryAdddNoteToGridCenter();
+                }
+            }
+
+            // Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)
+            if(Input.GetKeyUp(KeyCode.N)) {
+                if(isKeyboardAddNoteDown && !isPlaying && !promtWindowOpen) {
+                    notesArea.AddNoteOnClick();
+                }
+                isKeyboardAddNoteDown = false;
+            }
+
             // Input.GetKeyDown(KeyCode.LeftAlt)
             if(Input.GetButtonDown("Input Modifier3")) {
                 if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying) {
@@ -1063,17 +1081,26 @@ namespace MiKu.NET {
 #region Keyboard Shorcuts
             // Change Step and BPM
             // Input.GetKey(KeyCode.RightArrow)
-            if( Input.GetAxis("Horizontal") != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
+            float hortAxis = 0;            
+            if(Input.GetAxis("Horizontal")!= 0) {
+                hortAxis = Input.GetAxis("Horizontal");
+            }
+            if(Input.GetAxis("Horizontal Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
+                hortAxis = Input.GetAxis("Horizontal Free Camera");
+            }
+
+            if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
                 if(!IsPlaying) {
                     
-                    /* if(isCTRLDown) { m_BPMSlider.value = BPM + 1; }
-                    else { ChangeStepMeasure(true); }	 */		
-                    if(!isCTRLDown) {
-                        ChangeStepMeasure(Input.GetAxis("Horizontal") > 0);
-                    }		
+                    if(!isKeyboardAddNoteDown) {
+                        if(!isCTRLDown) {
+                            ChangeStepMeasure(hortAxis > 0);
+                        }
+                    } 
+                    		
                 } else {
-                    ChangePlaySpeed(Input.GetAxis("Horizontal") > 0);
+                    ChangePlaySpeed(hortAxis > 0);
                 }
                 nextKeyHold = nextKeyHold - keyHoldTime;
                 keyHoldTime = 0.0f;				
@@ -1084,19 +1111,22 @@ namespace MiKu.NET {
             float vertAxis = 0;
             if(Input.GetAxis("Vertical") != 0) {
                 vertAxis = Input.GetAxis("Vertical");
+                // Debug.LogError(vertAxis);
             }
 
-            if(Input.GetAxis("Vertical Free Camera") != 0 && SelectedCamera != m_FreeViewCamera && !isSHIFDown) {
+            if(Input.GetAxis("Vertical Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
                 vertAxis = Input.GetAxis("Vertical Free Camera");
             }
 
             if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown) {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
 
-                if(!isPlaying) {
-                    MoveCamera(true, GetPrevStepPoint());
-                    DrawTrackXSLines();
-                    PlayStepPreview();
+                if(!IsPlaying) {
+                    if(!isKeyboardAddNoteDown) {
+                        MoveCamera(true, GetPrevStepPoint());
+                        DrawTrackXSLines();
+                        PlayStepPreview();
+                    }                    
                 } else {
                     TogglePlay();                    
                     MoveCamera(true, GetPrevStepPoint());
@@ -1114,9 +1144,11 @@ namespace MiKu.NET {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
 
                 if(!isPlaying) {
-                    MoveCamera(true, GetNextStepPoint());
-                    DrawTrackXSLines();
-                    PlayStepPreview();
+                    if(!isKeyboardAddNoteDown) {
+                        MoveCamera(true, GetNextStepPoint());
+                        DrawTrackXSLines();
+                        PlayStepPreview();
+                    }
                 } else {
                     TogglePlay();
                     MoveCamera(true, GetNextStepPoint());
@@ -1208,15 +1240,19 @@ namespace MiKu.NET {
 					if (isALTDown && isCTRLDown){
 						// CTRL + ALT + LM adds mirror
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+                        if(_clickedNote != null && _clickedNote.noteGO != null) {
+                            TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+                        }						
 					}
 					else if (isALTDown && !isCTRLDown){
 						// ALT + LM moves clicked note to cursor position, or starts note drag if already on the cursor position
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						if (Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z)))==CurrentSelectedMeasure){
+						if (_clickedNote != null && _clickedNote.noteGO != null && Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z)))==CurrentSelectedMeasure){
 							noteDragger.StartNewDrag();
 						} else {
-							TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+                            if(_clickedNote != null && _clickedNote.noteGO != null) {
+							    TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+                            }
 						}
 					}
 				}
@@ -1227,11 +1263,13 @@ namespace MiKu.NET {
 					if (isALTDown && !isCTRLDown){
 						// Alt + RM moves cursor to clicked note position
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+                        if(_clickedNote != null && _clickedNote.noteGO != null) {
+                            JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(_clickedNote.noteGO.transform.position.z))));
+                        }						
 					} else if (isCTRLDown && !isALTDown){
 						// CTRL + RM deletes clicked note
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						if (_clickedNote != null){
+						if (_clickedNote != null && _clickedNote.noteGO != null){
 							Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
 							if(workingTrack != null && (_clickedNote.type == EditorNoteType.Standard || _clickedNote.type == EditorNoteType.RailStart)) {
 								List<Note> notesAtTime = workingTrack[_clickedNote.time];
@@ -1246,6 +1284,12 @@ namespace MiKu.NET {
 								}
 								if(targetToDelete) DestroyImmediate(targetToDelete);
 								UpdateTotalNotes(false, true);
+
+                                if(m_FullStatsContainer.activeInHierarchy) {
+                                    GetCurrentStats();
+                                }
+
+                                UpdateSegmentsList();
 							}	
 						}
 					}
@@ -1339,10 +1383,10 @@ namespace MiKu.NET {
                 }			
             }
 
-            if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera) {
+            if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(false);
             }
-            else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera) {
+            else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(true);
             }
 
@@ -1459,11 +1503,7 @@ namespace MiKu.NET {
                     } else if(isCTRLDown) {
                         ChangeStepMeasure(true);
                     }
-
-
-                }
-
-                			
+                }                			
             }
             else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen) // backwards
             {
@@ -1733,9 +1773,18 @@ namespace MiKu.NET {
                 }
             }
 
-            if(Input.GetKeyDown(KeyCode.N)) {
+
+            /* if(Input.GetKeyDown(KeyCode.N)) {
                 TryAdddNoteToGridCenter();
-            }
+            } */
+
+            if(!isALTDown && !promtWindowOpen) {
+                notesArea.IsOnKeyboardEditMode = isKeyboardAddNoteDown;
+                if(isKeyboardAddNoteDown) {
+                    notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
+                }
+            } 
+            
 #endregion
 
             if(markerWasUpdated) {
@@ -2449,10 +2498,12 @@ namespace MiKu.NET {
 		/// <summary>
         /// Update the current time on slider event
         /// </summary>
-		public void TimeSliderChange(float _sliderValue) {
+		public void TimeSliderChange(float _sliderValue) {            
 			if(!timeSliderScriptChange){
 			    JumpToMeasure(s_instance.GetBeatMeasureByTime(GetCloseStepMeasure(_sliderValue*(TrackDuration*MS))));
-			}
+			} else {
+                ShowLastNoteShadow();
+            }
 		}
 
 		/// <summary>
@@ -3030,9 +3081,11 @@ namespace MiKu.NET {
                 float backUpTime = CurrentTime;
                 float backUpMeasure = CurrentSelectedMeasure;
 
-                /* CurrentSelection.startTime = backUpTime;
-                CurrentSelection.startMeasure = backUpMeasure;
-                CurrentSelection.endTime = backUpTime + pasteContent.lenght; */
+                if(pasteContent.lenght > 0) {
+                    CurrentSelection.startTime = backUpTime;
+                    CurrentSelection.startMeasure = backUpMeasure;
+                    CurrentSelection.endTime = backUpTime + pasteContent.lenght;
+                }                
 
                 // print(string.Format("Current {0} Lenght {1} Duration {2}", CurrentTime, CurrentClipBoard.lenght, TrackDuration * MS));
                 /* if((CurrentTime + pasteContent.lenght) > (TrackDuration * MS) + MS) {
@@ -3054,7 +3107,7 @@ namespace MiKu.NET {
                         float prevTime = note_keys[i];
                         float newTime = prevTime + (backUpMeasure - pasteContent.startMeasure);
 
-                        if(GetTimeByMeasure(newTime) > 2000 && GetTimeByMeasure(newTime) < (TrackDuration * MS)) {
+                        if(GetTimeByMeasure(newTime) >= MIN_NOTE_START * MS && GetTimeByMeasure(newTime) < (TrackDuration * MS)) {
                             currList = pasteContent.notes[note_keys[i]];
                             copyList = new List<Note>();
                             
@@ -3117,15 +3170,15 @@ namespace MiKu.NET {
                 }
 
                 for(int i = 0; i < pasteContent.crouchs.Count; ++i) {
-                    if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
-                        CurrentSelectedMeasure = pasteContent.crouchs[i] + (backUpMeasure - pasteContent.startMeasure);
+                    CurrentSelectedMeasure = pasteContent.crouchs[i] + (backUpMeasure - pasteContent.startMeasure);
+                    if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {                        
                         ToggleMovementSectionToChart(CROUCH_TAG, true);
                     }
                 }
 
                 for(int i = 0; i < pasteContent.slides.Count; ++i) {
-                    if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
-                        CurrentSelectedMeasure = pasteContent.slides[i].time + (backUpMeasure - pasteContent.startMeasure);
+                    CurrentSelectedMeasure = pasteContent.slides[i].time + (backUpMeasure - pasteContent.startMeasure);                    
+                    if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {                    
                         Slide pasteSlide = pasteContent.slides[i];
                         if(reversePaste) {
                             if(pasteSlide.slideType == Note.NoteType.LeftHanded) {
@@ -3143,15 +3196,15 @@ namespace MiKu.NET {
                 }
 
                 for(int i = 0; i < pasteContent.effects.Count; ++i) {
-                    if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
-                        CurrentSelectedMeasure = pasteContent.effects[i] + (backUpMeasure - pasteContent.startMeasure);
+                    CurrentSelectedMeasure = pasteContent.effects[i] + (backUpMeasure - pasteContent.startMeasure);
+                    if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {                        
                         ToggleEffectToChart(true);
                     }
                 }
 
                 for(int i = 0; i < pasteContent.lights.Count; ++i) {
-                    if(GetTimeByMeasure(CurrentSelectedMeasure) > 2000 && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
-                        CurrentSelectedMeasure = pasteContent.lights[i] + (backUpMeasure - pasteContent.startMeasure);
+                    CurrentSelectedMeasure = pasteContent.lights[i] + (backUpMeasure - pasteContent.startMeasure);
+                    if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
                         ToggleLightsToChart(true);
                     }
                 }
@@ -3216,7 +3269,7 @@ namespace MiKu.NET {
 			// Remove the existing pattern and replace it with flipped variation
 			try {
                 float backUpMeasure = CurrentSelectedMeasure;
-                DeleteNotesAtTheCurrentTime();
+                DeleteNotesAtTheCurrentTime(true);
                 List<float> note_keys = flipClipboard.notes.Keys.ToList();
                 if(note_keys.Count > 0) {
                     List<Note> copyList;
@@ -4832,7 +4885,7 @@ namespace MiKu.NET {
             UpdateSegmentsList();
         }
 
-        private void UpdateSegmentsList()
+        public void UpdateSegmentsList()
         {
             segmentsList.Clear();
             Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
@@ -5722,7 +5775,7 @@ namespace MiKu.NET {
         /// <summary>
         /// Remove the notes on the current time
         /// </summary>
-        void DeleteNotesAtTheCurrentTime() {
+        void DeleteNotesAtTheCurrentTime(bool omitEffects = false) {
             isBusy = true;
 
             Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
@@ -5739,7 +5792,7 @@ namespace MiKu.NET {
             List<Slide> slides_tofilter;		
 
 
-            if(CurrentSelection.endTime > CurrentSelection.startTime) {				
+            if(CurrentSelection.endTime > CurrentSelection.startTime) {		                
                 keys_tofilter = keys_tofilter.Where(time => time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime) 
                     && time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)).ToList();
 
@@ -5800,17 +5853,19 @@ namespace MiKu.NET {
                 }				
             }	
 
-            for(int j = 0; j < effects_tofilter.Count; ++j) {
-                lookUpTime = effects_tofilter[j];
+            if(!omitEffects) {
+                for(int j = 0; j < effects_tofilter.Count; ++j) {
+                    lookUpTime = effects_tofilter[j];
 
-                if(workingEffects.Contains(lookUpTime)) {					
-                    workingEffects.Remove(lookUpTime);
-                    targetToDelete = GameObject.Find(GetEffectIdFormated(lookUpTime));
-                    if(targetToDelete) {
-                        DestroyImmediate(targetToDelete);
+                    if(workingEffects.Contains(lookUpTime)) {					
+                        workingEffects.Remove(lookUpTime);
+                        targetToDelete = GameObject.Find(GetEffectIdFormated(lookUpTime));
+                        if(targetToDelete) {
+                            DestroyImmediate(targetToDelete);
+                        }
                     }
                 }
-            }
+            }            
 
             for(int j = 0; j < jumps_tofilter.Count; ++j) {
                 lookUpTime = jumps_tofilter[j];
@@ -5852,14 +5907,16 @@ namespace MiKu.NET {
                 }
             }
 
-            for(int j = 0; j < lights_tofilter.Count; ++j) {
-                lookUpTime = lights_tofilter[j];
+            if(!omitEffects) {
+                for(int j = 0; j < lights_tofilter.Count; ++j) {
+                    lookUpTime = lights_tofilter[j];
 
-                if(lights.Contains(lookUpTime)) {					
-                    lights.Remove(lookUpTime);
-                    targetToDelete = GameObject.Find(GetLightIdFormated(lookUpTime));
-                    if(targetToDelete) {
-                        DestroyImmediate(targetToDelete);
+                    if(lights.Contains(lookUpTime)) {					
+                        lights.Remove(lookUpTime);
+                        targetToDelete = GameObject.Find(GetLightIdFormated(lookUpTime));
+                        if(targetToDelete) {
+                            DestroyImmediate(targetToDelete);
+                        }
                     }
                 }
             }
@@ -5998,7 +6055,7 @@ namespace MiKu.NET {
                 return;
             }  
 
-            Note n = new Note(gridManager.GetNearestPointOnGrid(new Vector3(0, 0, MStoUnit(GetTimeByMeasure(targetMeasure)))), FormatNoteName(targetMeasure, 1, Note.NoteType.LeftHanded));
+            Note n = new Note(gridManager.GetNearestPointOnGrid(new Vector3(0, -0.25f, MStoUnit(GetTimeByMeasure(targetMeasure)))), FormatNoteName(targetMeasure, 1, Note.NoteType.LeftHanded));
             n.Type = Note.NoteType.LeftHanded;
             AddNoteGameObjectToScene(n);
 
@@ -6778,6 +6835,7 @@ namespace MiKu.NET {
         /// Move the camera to the closed measure of the passed time value
         /// </summary>
         public static void JumpToMeasure(float measure) {
+            s_instance.ShowLastNoteShadow();
             float time = s_instance.GetTimeByMeasure(measure);
             time = Mathf.Min(time, s_instance.TrackDuration * MS);
             CurrentTime = time;//s_instance.GetCloseStepMeasure(time, false, MAX_MEASURE_DIVIDER);            
@@ -6884,7 +6942,7 @@ namespace MiKu.NET {
         public static void ToggleMovementSectionToChart(string MoveTAG, bool isOverwrite = false) {
             if(PromtWindowOpen || IsPlaying) return;
 
-            if(CurrentTime < MIN_NOTE_START * MS) {
+            if(s_instance.GetTimeByMeasure(CurrentSelectedMeasure) < MIN_NOTE_START * MS) {
                 Miku_DialogManager.ShowDialog(
                     Miku_DialogManager.DialogType.Alert, 
                     string.Format(
@@ -8238,7 +8296,7 @@ namespace MiKu.NET {
             }
         }
 
-        private void GetCurrentStats() {
+        public void GetCurrentStats() {
             if(statsSTRBuilder == null) {
                 statsSTRBuilder = new StringBuilder();
             } else {
@@ -8663,6 +8721,27 @@ namespace MiKu.NET {
         public static TrackInfo TrackInfo {
             get {
                 return s_instance.trackInfo;
+            }
+        }
+
+        public GameObject FullStatsContainer
+        {
+            get
+            {
+                return m_FullStatsContainer;
+            }
+
+            set
+            {
+                m_FullStatsContainer = value;
+            }
+        }
+
+        public List<Segment> SegmentsList
+        {
+            get
+            {
+                return segmentsList;
             }
         }
         #endregion

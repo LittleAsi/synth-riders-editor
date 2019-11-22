@@ -73,6 +73,13 @@ namespace MiKu.NET {
         Vector3 finalPosition, mirroredPosition;
         GameObject[] multipleNotes;
 
+        private Vector2 keyBoardPosition;
+        private bool isOnKeyboardEditMode = false;
+        private const float HORZ_KEY_SPEED = 0.008f;
+        private const float VERT_KEY_SPEED = 0.008f;
+        private const float HORZ_BOUNDS = 0.7f;
+        private const float VERT_BOUNDS = 1;
+
         public bool SnapToGrip
         {
             get
@@ -83,6 +90,19 @@ namespace MiKu.NET {
             set
             {
                 snapToGrip = value;
+            }
+        }
+
+        public bool IsOnKeyboardEditMode
+        {
+            get
+            {
+                return isOnKeyboardEditMode;
+            }
+
+            set
+            {
+                isOnKeyboardEditMode = value;
             }
         }
 
@@ -143,7 +163,9 @@ namespace MiKu.NET {
 
             if(mirroredNote != null) {
                 GameObject.DestroyImmediate(mirroredNote);
-            }		
+            }	
+
+            // keyBoardPosition = Vector2.zero;	
         }
 
         void OnApplicationFocus(bool hasFocus)
@@ -195,15 +217,8 @@ namespace MiKu.NET {
             }
             
             if (Input.GetMouseButtonDown(0) && selectedNote != null) {
-                if(!isALTDown && !isCTRLDown && !isSHIFDown) {
-                    if(Track.IsOnMirrorMode) {
-                        System.Array.Clear(multipleNotes, 0, 2);
-                        multipleNotes[0] = selectedNote;
-                        multipleNotes[1] = mirroredNote;
-                        Track.AddNoteToChart(multipleNotes);
-                    } else {
-                        Track.AddNoteToChart(selectedNote);
-                    }	
+                if(!isALTDown && !isCTRLDown && !isSHIFDown) {                    
+                    AddNoteOnClick();
                 } else {
                     if(isCTRLDown && isALTDown && !isSHIFDown) {
 						//Moved to Track.cs
@@ -217,14 +232,20 @@ namespace MiKu.NET {
 
         void FixedUpdate() {	
             ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-            if(!NoteDragger.activated && Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value)) {
+            bool isOnRaycastMode = Physics.Raycast(ray, out hit, Mathf.Infinity, targetMask.value);
+            if(!NoteDragger.activated && ( isOnRaycastMode || IsOnKeyboardEditMode)) {
                 
                 EnabledSelectedNote();
 				
                 //if (isCTRLDown) { DisableSelectedNote(); }
 				//else { EnabledSelectedNote(); }
 
-                rayPos = hit.point;
+                if(isOnRaycastMode) {
+                    rayPos = hit.point;
+                } else {
+                    rayPos = new Vector3(keyBoardPosition.x, keyBoardPosition.y, 0);
+                }
+                
                 rayPos.z = (float)Track.CurrentUnityUnit;
 
                 finalPosition = (SnapToGrip) ? grid.GetNearestPointOnGrid(rayPos) : rayPos;
@@ -253,6 +274,19 @@ namespace MiKu.NET {
             }
         }
 
+        public void AddNoteOnClick() {
+            if(Track.IsOnMirrorMode) {
+                System.Array.Clear(multipleNotes, 0, 2);
+                multipleNotes[0] = selectedNote;
+                multipleNotes[1] = mirroredNote;
+                Track.AddNoteToChart(multipleNotes);
+            } else {
+                Track.AddNoteToChart(selectedNote);
+            }	
+
+            keyBoardPosition = selectedNote.transform.position;
+        }
+
         public void RefreshSelectedObjec() {
             if(selectedNote != null) {
                 GameObject.DestroyImmediate(selectedNote);
@@ -275,7 +309,7 @@ namespace MiKu.NET {
             }			
         }
 
-        private void SetBoundaireBoxColor(float distanceToCenter) {
+        public void SetBoundaireBoxColor(float distanceToCenter) {
             boundBoxSpriteRenderer.color = GetColorToDistance(distanceToCenter);
         }
 
@@ -301,6 +335,14 @@ namespace MiKu.NET {
                     historyCircleSpriteRenderer[i].color = m_BothHandColor;
                 } 
             }
+        }
+
+        public void UpdateNotePosWithKeyboard(float vertical, float horizontal) {
+            keyBoardPosition.x = keyBoardPosition.x + (vertical*VERT_KEY_SPEED);
+            keyBoardPosition.y = keyBoardPosition.y + (horizontal*HORZ_KEY_SPEED);
+            // Debug.LogError("Hor "+keyBoardPosition.x+" Ver "+keyBoardPosition.y);
+            keyBoardPosition.x = Mathf.Clamp(keyBoardPosition.x, VERT_BOUNDS*-1, VERT_BOUNDS);
+            keyBoardPosition.y = Mathf.Clamp(keyBoardPosition.y, HORZ_BOUNDS*-1, HORZ_BOUNDS);
         }
 
 #region Static Methods
