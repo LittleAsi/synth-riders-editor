@@ -75,8 +75,8 @@ namespace MiKu.NET {
 
         private Vector2 keyBoardPosition;
         private bool isOnKeyboardEditMode = false;
-        private const float HORZ_KEY_SPEED = 0.008f;
-        private const float VERT_KEY_SPEED = 0.008f;
+        private const float HORZ_KEY_SPEED = 0.01f;
+        private const float VERT_KEY_SPEED = 0.01f;
         private const float HORZ_BOUNDS = 0.7f;
         private const float VERT_BOUNDS = 1;
 

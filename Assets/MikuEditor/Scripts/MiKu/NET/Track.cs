@@ -748,7 +748,7 @@ namespace MiKu.NET {
 
         // for keyboard interactions
         private float keyHoldDelta = 0.15f;
-        private float nextKeyHold = 0.5f;
+        private float nextKeyHold = 0f;
         private float keyHoldTime = 0;
         private bool keyIsHold = false;
         private bool isCTRLDown = false;
@@ -1084,9 +1084,26 @@ namespace MiKu.NET {
             float hortAxis = 0;            
             if(Input.GetAxis("Horizontal")!= 0) {
                 hortAxis = Input.GetAxis("Horizontal");
-            }
+            } 
+
             if(Input.GetAxis("Horizontal Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
                 hortAxis = Input.GetAxis("Horizontal Free Camera");
+            } 
+
+            // Movement on the track
+            // Input.GetKey(KeyCode.DownArrow)
+            float vertAxis = 0;
+            if(Input.GetAxis("Vertical") != 0) {
+                vertAxis = Input.GetAxis("Vertical");
+                // Debug.LogError(vertAxis);
+            } 
+
+            if(Input.GetAxis("Vertical Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
+                vertAxis = Input.GetAxis("Vertical Free Camera");
+            }
+
+            if(hortAxis == 0 && vertAxis == 0 && SelectedCamera != m_FreeViewCamera ) {
+                nextKeyHold = -1;
             }
 
             if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
@@ -1104,19 +1121,7 @@ namespace MiKu.NET {
                 }
                 nextKeyHold = nextKeyHold - keyHoldTime;
                 keyHoldTime = 0.0f;				
-            }
-
-            // Movement on the track
-            // Input.GetKey(KeyCode.DownArrow)
-            float vertAxis = 0;
-            if(Input.GetAxis("Vertical") != 0) {
-                vertAxis = Input.GetAxis("Vertical");
-                // Debug.LogError(vertAxis);
-            }
-
-            if(Input.GetAxis("Vertical Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
-                vertAxis = Input.GetAxis("Vertical Free Camera");
-            }
+            }            
 
             if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown) {
                 nextKeyHold = keyHoldTime + keyHoldDelta;
@@ -1383,12 +1388,12 @@ namespace MiKu.NET {
                 }			
             }
 
-            if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
+            /* if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(false);
             }
             else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
                 ChangeStepMeasure(true);
-            }
+            } */
 
             // Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)
             if(Input.GetButtonDown("Center Camera")) {
@@ -6649,11 +6654,15 @@ namespace MiKu.NET {
         }
 
         public static Note TryGetNoteFromBeatTimeType(float beatTime, Note.NoteType type) {
-            Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
-            List<Note> testNotes = new List<Note>();
-            testNotes = workingTrack[beatTime];
-            if (testNotes[0].Type == type) return testNotes[0];
-            else return testNotes[1];
+            try {
+                Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+                List<Note> testNotes = new List<Note>();
+                testNotes = workingTrack[beatTime];
+                if (testNotes[0].Type == type) return testNotes[0];
+                else return testNotes[1];
+            } catch {
+                return null;
+            }            
         }
 
         /// <summary>
