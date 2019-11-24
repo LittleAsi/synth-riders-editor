@@ -2836,11 +2836,16 @@ namespace MiKu.NET {
         /// Save the chart to file
         /// </summary>
         public void SaveChartAction() {
+            GetCurrentStats();
             CurrentChart.BPM = BPM;
             CurrentChart.Offset = StartOffset;
             CurrentChart.UsingBeatMeasure = true;
             Serializer.ChartData = CurrentChart;
             Serializer.ChartData.EditorVersion = EditorVersion;
+
+            DateTime Epoch = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+            TimeSpan elapsedTime = new DateTimeOffset(DateTime.UtcNow) - Epoch;
+            Serializer.ChartData.ModifiedTime =  (long)elapsedTime.TotalSeconds;
 
             TimeSpan t = TimeSpan.FromSeconds(TrackDuration);
             trackInfo.duration = string.Format("{0:D2}:{1:D2}", t.Minutes, t.Seconds);
@@ -4949,7 +4954,7 @@ namespace MiKu.NET {
             if(CurrentChart.Bookmarks.BookmarksList.Count > 0) {
                 for(int i = 0; i < CurrentChart.Bookmarks.BookmarksList.Count; ++i) {
                     Bookmark bookmark = CurrentChart.Bookmarks.BookmarksList[i];
-                    bookmark.time = GetBeatMeasureByTime(bookmark.time);
+                    bookmark.time = Mathf.RoundToInt(GetBeatMeasureByTime(bookmark.time));
                     CurrentChart.Bookmarks.BookmarksList[i] = bookmark;
                 }
             }
@@ -4957,93 +4962,93 @@ namespace MiKu.NET {
             // Update not note elements
             // Lights
             for(int i = 0; i < CurrentChart.Lights.Easy.Count; ++i) {
-                CurrentChart.Lights.Easy[i] = GetBeatMeasureByTime(CurrentChart.Lights.Easy[i]);
+                CurrentChart.Lights.Easy[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Easy[i]));
             }
             for(int i = 0; i < CurrentChart.Lights.Normal.Count; ++i) {
-                CurrentChart.Lights.Normal[i] = GetBeatMeasureByTime(CurrentChart.Lights.Normal[i]);
+                CurrentChart.Lights.Normal[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Normal[i]));
             }
             for(int i = 0; i < CurrentChart.Lights.Hard.Count; ++i) {
-                CurrentChart.Lights.Hard[i] = GetBeatMeasureByTime(CurrentChart.Lights.Hard[i]);
+                CurrentChart.Lights.Hard[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Hard[i]));
             }
             for(int i = 0; i < CurrentChart.Lights.Expert.Count; ++i) {
-                CurrentChart.Lights.Expert[i] = GetBeatMeasureByTime(CurrentChart.Lights.Expert[i]);
+                CurrentChart.Lights.Expert[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Expert[i]));
             }
             for(int i = 0; i < CurrentChart.Lights.Master.Count; ++i) {
-                CurrentChart.Lights.Master[i] = GetBeatMeasureByTime(CurrentChart.Lights.Master[i]);
+                CurrentChart.Lights.Master[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Master[i]));
             }
             for(int i = 0; i < CurrentChart.Lights.Custom.Count; ++i) {
-                CurrentChart.Lights.Custom[i] = GetBeatMeasureByTime(CurrentChart.Lights.Custom[i]);
+                CurrentChart.Lights.Custom[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Lights.Custom[i]));
             }
 
             // Effects
             for(int i = 0; i < CurrentChart.Effects.Easy.Count; ++i) {
-                CurrentChart.Effects.Easy[i] = GetBeatMeasureByTime(CurrentChart.Effects.Easy[i]);
+                CurrentChart.Effects.Easy[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Easy[i]));
             }
             for(int i = 0; i < CurrentChart.Effects.Normal.Count; ++i) {
-                CurrentChart.Effects.Normal[i] = GetBeatMeasureByTime(CurrentChart.Effects.Normal[i]);
+                CurrentChart.Effects.Normal[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Normal[i]));
             }
             for(int i = 0; i < CurrentChart.Effects.Hard.Count; ++i) {
-                CurrentChart.Effects.Hard[i] = GetBeatMeasureByTime(CurrentChart.Effects.Hard[i]);
+                CurrentChart.Effects.Hard[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Hard[i]));
             }
             for(int i = 0; i < CurrentChart.Effects.Expert.Count; ++i) {
-                CurrentChart.Effects.Expert[i] = GetBeatMeasureByTime(CurrentChart.Effects.Expert[i]);
+                CurrentChart.Effects.Expert[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Expert[i]));
             }
             for(int i = 0; i < CurrentChart.Effects.Master.Count; ++i) {
-                CurrentChart.Effects.Master[i] = GetBeatMeasureByTime(CurrentChart.Effects.Master[i]);
+                CurrentChart.Effects.Master[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Master[i]));
             }
             for(int i = 0; i < CurrentChart.Effects.Custom.Count; ++i) {
-                CurrentChart.Effects.Custom[i] = GetBeatMeasureByTime(CurrentChart.Effects.Custom[i]);
+                CurrentChart.Effects.Custom[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Effects.Custom[i]));
             }
 
             // Crouchs
             for(int i = 0; i < CurrentChart.Crouchs.Easy.Count; ++i) {
-                CurrentChart.Crouchs.Easy[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Easy[i]);
+                CurrentChart.Crouchs.Easy[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Easy[i]));
             }
             for(int i = 0; i < CurrentChart.Crouchs.Normal.Count; ++i) {
-                CurrentChart.Crouchs.Normal[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Normal[i]);
+                CurrentChart.Crouchs.Normal[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Normal[i]));
             }
             for(int i = 0; i < CurrentChart.Crouchs.Hard.Count; ++i) {
-                CurrentChart.Crouchs.Hard[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Hard[i]);
+                CurrentChart.Crouchs.Hard[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Hard[i]));
             }
             for(int i = 0; i < CurrentChart.Crouchs.Expert.Count; ++i) {
-                CurrentChart.Crouchs.Expert[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Expert[i]);
+                CurrentChart.Crouchs.Expert[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Expert[i]));
             }
             for(int i = 0; i < CurrentChart.Crouchs.Master.Count; ++i) {
-                CurrentChart.Crouchs.Master[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Master[i]);
+                CurrentChart.Crouchs.Master[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Master[i]));
             }
             for(int i = 0; i < CurrentChart.Crouchs.Custom.Count; ++i) {
-                CurrentChart.Crouchs.Custom[i] = GetBeatMeasureByTime(CurrentChart.Crouchs.Custom[i]);
+                CurrentChart.Crouchs.Custom[i] = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentChart.Crouchs.Custom[i]));
             }
 
             // Slides
             for(int i = 0; i < CurrentChart.Slides.Easy.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Easy[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Easy[i] = slide;
             }
             for(int i = 0; i < CurrentChart.Slides.Normal.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Normal[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Normal[i] = slide;
             }
             for(int i = 0; i < CurrentChart.Slides.Hard.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Hard[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Hard[i] = slide;
             }
             for(int i = 0; i < CurrentChart.Slides.Expert.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Expert[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Expert[i] = slide;
             }
             for(int i = 0; i < CurrentChart.Slides.Master.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Master[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Master[i] = slide;
             }
             for(int i = 0; i < CurrentChart.Slides.Custom.Count; ++i) {
                 Slide slide = CurrentChart.Slides.Custom[i];
-                slide.time = GetBeatMeasureByTime(slide.time);
+                slide.time = Mathf.RoundToInt(GetBeatMeasureByTime(slide.time));
                 CurrentChart.Slides.Custom[i] = slide;
             }
 
@@ -8477,6 +8482,12 @@ namespace MiKu.NET {
                 .AppendLine(string.Format("<indent=10%>- Crouch - <b>{0}</b></indent>", totalCrouchs));
 
             m_FullStatsText.SetText(statsSTRBuilder.ToString());
+
+            if(CurrentChart.BeatConverted) {
+                if(totalLines > 0 || totalDiagLeft > 0 || totalDiagRight > 0 || totalNotesSpecials > 0) {
+                    CurrentChart.BeatConverted = false;
+                }
+            }
         }
 
 #region Setters & Getters

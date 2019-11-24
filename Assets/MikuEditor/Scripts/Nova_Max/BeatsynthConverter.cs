@@ -32,6 +32,7 @@ public static class BeatSynthConverter
             synthSong.BPM = info._beatsPerMinute;
             synthSong.Offset = (info._songTimeOffset < 0) ? info._songTimeOffset : synthSong.Offset = 0;
             synthSong.Beatmapper = (info._levelAuthorName != "") ? info._levelAuthorName : "N/A";
+            synthSong.BeatConverted = true;
 
             synthSong.Artwork = "Default Artwork";
             synthSong.ArtworkBytes = null;
@@ -94,7 +95,7 @@ public static class BeatSynthConverter
 
                         string id = i.ToString() + "," + j.ToString();
 
-                        Note note = new Note(pos, id,-1, type);
+                        Note note = new Note(pos, id, -1, type);
 
                         if (!track.ContainsKey(time))
                         {
@@ -166,6 +167,36 @@ public static class BeatSynthConverter
                             }
                         }
                     }
+
+                    Beats defaultBeats = new Beats();
+                    defaultBeats.Easy = new Dictionary<float, List<Note>>();
+                    defaultBeats.Normal = new Dictionary<float, List<Note>>();
+                    defaultBeats.Hard = new Dictionary<float, List<Note>>();
+                    defaultBeats.Expert = new Dictionary<float, List<Note>>();
+                    defaultBeats.Master = new Dictionary<float, List<Note>>();
+                    defaultBeats.Custom = new Dictionary<float, List<Note>>();
+
+                    synthSong.Track = defaultBeats;
+
+                    Crouchs defaultCrouchs = new Crouchs();
+                    defaultCrouchs.Easy = new List<float>();
+                    defaultCrouchs.Normal = new List<float>();
+                    defaultCrouchs.Hard = new List<float>();
+                    defaultCrouchs.Expert = new List<float>();
+                    defaultCrouchs.Master = new List<float>();
+                    defaultCrouchs.Custom = new List<float>();
+
+                    synthSong.Crouchs = defaultCrouchs;
+
+                    Slides defaultSlides = new Slides();
+                    defaultSlides.Easy = new List<Slide>();
+                    defaultSlides.Normal = new List<Slide>();
+                    defaultSlides.Hard = new List<Slide>();
+                    defaultSlides.Expert = new List<Slide>();
+                    defaultSlides.Master = new List<Slide>();
+                    defaultSlides.Custom = new List<Slide>();
+
+                    synthSong.Slides = defaultSlides;
 
                     if (info._difficultyBeatmapSets[0]._difficultyBeatmaps[i]._difficulty.Equals("Expert"))
                     {

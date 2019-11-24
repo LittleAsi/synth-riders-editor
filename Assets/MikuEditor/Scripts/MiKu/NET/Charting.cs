@@ -496,5 +496,15 @@ namespace MiKu.NET.Charting {
         public bool UsingBeatMeasure { get; set;}
 
         public List<string> Tags { get; set; }
+
+        /// <value>
+        /// Flag that indicates if a map has been converted from Beat Saber
+        /// </value>
+        public bool BeatConverted { get; set; }
+
+        /// <value>
+        /// Last timestamp the chart was modiied
+        /// </value>
+        public long ModifiedTime { get; set; }
     }    
 }
