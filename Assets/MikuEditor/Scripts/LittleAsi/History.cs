@@ -18,8 +18,9 @@ namespace LittleAsi.History {
 		History.HistoryObjectType, - Type of object changed; see HistoryObjectType enum for types
 		bool, - true if registering a post-change state; false if registering a pre-change event 
 		Note.NoteType, - Sub-type of the object changed, e.g. note type, slide type; any Note.NoteType value is fine if there are no varieties of the object type
-		_noteToDelete.Position, - array of floats indicating the X, Y, and Z position of the object; Z is used to calculate time
-		_noteToDelete.Segments - Two dimensional array of floats indicating the positions of any rail nodes; can be an empty array if the object isn't a note with associated segments
+		float, - Beat - The beat measure associated with the state (primary timing indicator)
+		float[], - Position - array of floats indicating the X, Y, and Z position of the object; Z is sometimes used to calculate time
+		float[,] - Segments - two dimensional array of floats indicating the positions of any rail nodes; can be an empty array if the object isn't a note with associated segments
 	));
 	
 	Once all changes have been completed, add the HistoryEvent to the History:
