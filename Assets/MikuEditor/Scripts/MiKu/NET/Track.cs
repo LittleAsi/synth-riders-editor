@@ -6699,6 +6699,7 @@ namespace MiKu.NET {
         /// Delete an individual rail node
         /// </summary>
 		public static void DeleteIndividualRailNode(float _beat, float[] _position, Note.NoteType _type) {
+			// Only used in Undo and Redo, so history functions not currently included. Make sure to add them if you repurpose this function.
 			EditorNote editorNote = new EditorNote();
 			editorNote.noteGO = FindRailNodeGOByPositionAndType(_position, _type);
 			TempBeatTimeRef tempBeatTimeRef = editorNote.noteGO.transform.parent.parent.GetComponent<TempBeatTimeRef>();
@@ -6713,7 +6714,7 @@ namespace MiKu.NET {
 			s_instance.selectedNoteType = _type;
 			Game_LineWaveCustom waveCustom = editorNote.noteGO.transform.parent.GetComponentInChildren<Game_LineWaveCustom>();
 			editorNote.connectedNodes.Remove(editorNote.noteGO.transform);
-			Destroy(editorNote.noteGO);
+			DestroyImmediate(editorNote.noteGO);
 			if (waveCustom) {
 				var segments = s_instance.railEditor.GetLineSegementArrayPoses(editorNote.connectedNodes);
 				//Update the actual values in the note.
