@@ -92,7 +92,7 @@ namespace Shogoki.Utils {
 		[Header("Promts")]
 		[SerializeField]
 		[TextArea(3, 8)]
-		private string promt_ClearNotes = "Delete all Notes of the current selected Difficulty?";
+		private string promt_ClearNotes = "Delete all Notes of the current selected Difficulty? This cannot be undone!";
 
 		[SerializeField]
 		[TextArea(3, 8)]

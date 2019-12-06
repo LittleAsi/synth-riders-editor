@@ -40,13 +40,19 @@ public class RailEditor : MonoBehaviour {
 
 	public void RemoveNodeFromActiveRail() {
 		EditorNote note = NoteRayUtil.NoteUnderMouse(activatedCamera, notesLayer);
+		RemoveNodeFromActiveRail(note);
+	}
+	
+	public void RemoveNodeFromActiveRail(EditorNote _note) {
+		EditorNote note = _note;
 
 		if (note == null || note.noteGO == null || (note.exists && note.type != EditorNoteType.RailNode)) return;
 		
 		Game_LineWaveCustom waveCustom = note.noteGO.transform.parent.GetComponentInChildren<Game_LineWaveCustom>();
-
+		Track.HistoryChangeRailNode(note.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z)), new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
+		
 		note.connectedNodes.Remove(note.noteGO.transform);
-		Destroy(note.noteGO);
+		DestroyImmediate(note.noteGO);
 
 		if (waveCustom) {
 			var segments = GetLineSegementArrayPoses(note.connectedNodes);
@@ -60,45 +66,43 @@ public class RailEditor : MonoBehaviour {
 			if(Track.s_instance.FullStatsContainer.activeInHierarchy) {
                 Track.s_instance.GetCurrentStats();
             }
-
-			Track.s_instance.UpdateSegmentsList();
 		}
-
+		Track.s_instance.UpdateSegmentsList();
 	}
 
-
 	public void AddNodeToActiveRail(GameObject go) {
+		AddNodeToActiveRail(go.transform.position.x, go.transform.position.y, go.transform.position.z);
+	}
+	
+	public void AddNodeToActiveRail(float _x, float _y, float _z) {
 		if (Track.s_instance.isOnLongNoteMode) {
 			Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, "Can't add to rail in Long Mode.'");
 			return;
 		}
-
+		//Debug.Log("Adding node to: " +_x + ", " + _y + ", " + _z);
 		activeRail = FindNearestRailBack();
 		
 		if (!activeRail.exists) return;
 
 		List<Segment> segments = Track.s_instance.SegmentsList.FindAll(x => x.measure == Track.CurrentSelectedMeasure && x.note.Type == selectedNoteType);
 		if(segments != null && segments.Count > 0) { 
+			Debug.Log("Existing node found!");
 			return;
 		}
-
 		GameObject noteGO = GameObject.Instantiate(Track.s_instance.GetNoteMarkerByType(selectedNoteType, true));
-		noteGO.transform.localPosition = go.transform.position;
+		noteGO.transform.localPosition = new Vector3(_x, _y, _z);
 		noteGO.transform.rotation =	Quaternion.identity;
 		noteGO.transform.localScale *= Track.s_instance.m_NoteSegmentMarkerRedution;
 		noteGO.transform.parent = activeRail.noteGO.transform.Find("LineArea");
 		noteGO.name = activeRail.note.Id+"_Segment";
-		
 		activeRail.GetConnectedNodes();
-		
-
+		Track.HistoryChangeRailNode(selectedNoteType, true, Track.CurrentSelectedMeasure, new float[] {_x, _y, _z});
 		//lNote.note.Segments = null;
 		
 		Dictionary<float, List<Note>> workingTrack = Track.s_instance.GetCurrentTrackDifficulty();
 		if(!workingTrack.ContainsKey(activeRail.time)) {
 			Debug.Log("Error while finding rail start.");
 		}
-
 		float[,] poses = GetLineSegementArrayPoses(activeRail.connectedNodes);
 		
 		if (workingTrack[activeRail.time][0].Type == selectedNoteType && workingTrack[activeRail.time][0].Segments != null) {
@@ -107,7 +111,6 @@ public class RailEditor : MonoBehaviour {
 		else {
 			workingTrack[activeRail.time][1].Segments = poses;
 		}
-
 		var waveCustom = activeRail.noteGO.transform.Find("LineArea").GetComponentInChildren<Game_LineWaveCustom>();
 
 		if (waveCustom) {
@@ -117,9 +120,8 @@ public class RailEditor : MonoBehaviour {
 			if(Track.s_instance.FullStatsContainer.activeInHierarchy) {
                 Track.s_instance.GetCurrentStats();
             }
-
-			Track.s_instance.UpdateSegmentsList();
 		}
+		Track.s_instance.UpdateSegmentsList();
 	}
 	
 	
@@ -141,7 +143,7 @@ public class RailEditor : MonoBehaviour {
 		return lNote;
 	}
 	
-	private float[,] GetLineSegementArrayPoses(List<Transform> connectNodes) {
+	public float[,] GetLineSegementArrayPoses(List<Transform> connectNodes) {
 		float[,] segments = new float[connectNodes.Count, 3];
 
 		int i = 0;
@@ -156,7 +158,7 @@ public class RailEditor : MonoBehaviour {
 		return segments;
 	}
 
-	private float[,] GetLineSegementArrayPoses(List<GameObject> GOs) {
+	public float[,] GetLineSegementArrayPoses(List<GameObject> GOs) {
 		List<Transform> transforms = new List<Transform>();
 
 		foreach (GameObject go in GOs) {
