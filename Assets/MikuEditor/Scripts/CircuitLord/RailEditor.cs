@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using MiKu.NET;
 using MiKu.NET.Charting;
+using LittleAsi.History;
 using ThirdParty.Custom;
 using UnityEngine;
 
@@ -45,29 +46,47 @@ public class RailEditor : MonoBehaviour {
 	
 	public void RemoveNodeFromActiveRail(EditorNote _note) {
 		EditorNote note = _note;
-
 		if (note == null || note.noteGO == null || (note.exists && note.type != EditorNoteType.RailNode)) return;
-		
 		Game_LineWaveCustom waveCustom = note.noteGO.transform.parent.GetComponentInChildren<Game_LineWaveCustom>();
-		Track.HistoryChangeRailNode(note.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z)), new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
-		
-		note.connectedNodes.Remove(note.noteGO.transform);
-		DestroyImmediate(note.noteGO);
-
-		if (waveCustom) {
-			var segments = GetLineSegementArrayPoses(note.connectedNodes);
-
-			//Update the actual values in the note.
-			note.note.Segments = segments;
-			waveCustom.targetOptional = segments;
-			
-			waveCustom.RenderLine(true, true);
-
-			if(Track.s_instance.FullStatsContainer.activeInHierarchy) {
-                Track.s_instance.GetCurrentStats();
-            }
+		if(note.connectedNodes.Count==1){
+			// If this is the only node on the rail, record the before and after states of the parent note instead of the node to avoid errors during Undo; also delete and replace parent note to reset rail line.
+			Note.NoteType selectedNoteTypeBackup = Track.s_instance.selectedNoteType;
+			Track.s_instance.selectedNoteType = note.note.Type;
+			activeRail = FindNearestRailBack();
+			if (!activeRail.exists) {
+				Debug.Log("No active rail found!");
+				return;
+			}
+			Track.s_instance.selectedNoteType = selectedNoteTypeBackup;
+			Track.HistoryChangeRailNodeParent(activeRail.note.Type, activeRail.time, new float[] {activeRail.note.Position[0], activeRail.note.Position[1], activeRail.note.Position[2]}, activeRail.note.Segments, new float[,] {});
+			note.connectedNodes.Remove(note.noteGO.transform);
+			DestroyImmediate(note.noteGO);
+			//DestroyImmediate(activeRail.noteGO.transform.Find("LineArea"));
+			//DestroyImmediate(waveCustom);
+			note.note.Segments = new float [,] {};
+			bool changingHistoryBackup = History.changingHistory;
+			History.changingHistory = true;
+			float savedBeat = activeRail.time;
+			float[] savedPosition = new float[] {activeRail.note.Position[0], activeRail.note.Position[1], activeRail.note.Position[2]};
+			Note.NoteType savedType = activeRail.note.Type;
+			Track.DeleteIndividualNote(activeRail);
+			Track.AddIndividualNote(savedBeat, savedPosition, savedType, new float [,] {});
+			History.changingHistory = changingHistoryBackup;
+		}
+		else {
+			Track.HistoryChangeRailNode(note.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z)), new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
+			note.connectedNodes.Remove(note.noteGO.transform);
+			DestroyImmediate(note.noteGO);
+			if (waveCustom) {
+				var segments = GetLineSegementArrayPoses(note.connectedNodes);
+				//Update the actual values in the note.
+				note.note.Segments = segments;
+				waveCustom.targetOptional = segments;
+				waveCustom.RenderLine(true, true);
+			}
 		}
 		Track.s_instance.UpdateSegmentsList();
+		if(Track.s_instance.FullStatsContainer.activeInHierarchy) Track.s_instance.GetCurrentStats();
 	}
 
 	public void AddNodeToActiveRail(GameObject go) {
@@ -79,11 +98,8 @@ public class RailEditor : MonoBehaviour {
 			Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, "Can't add to rail in Long Mode.'");
 			return;
 		}
-		//Debug.Log("Adding node to: " +_x + ", " + _y + ", " + _z);
 		activeRail = FindNearestRailBack();
-		
 		if (!activeRail.exists) return;
-
 		List<Segment> segments = Track.s_instance.SegmentsList.FindAll(x => x.measure == Track.CurrentSelectedMeasure && x.note.Type == selectedNoteType);
 		if(segments != null && segments.Count > 0) { 
 			Debug.Log("Existing node found!");
@@ -96,9 +112,7 @@ public class RailEditor : MonoBehaviour {
 		noteGO.transform.parent = activeRail.noteGO.transform.Find("LineArea");
 		noteGO.name = activeRail.note.Id+"_Segment";
 		activeRail.GetConnectedNodes();
-		Track.HistoryChangeRailNode(selectedNoteType, true, Track.CurrentSelectedMeasure, new float[] {_x, _y, _z});
-		//lNote.note.Segments = null;
-		
+		Track.HistoryChangeRailNode(selectedNoteType, true, Track.CurrentSelectedMeasure, new float[] {_x, _y, _z});		
 		Dictionary<float, List<Note>> workingTrack = Track.s_instance.GetCurrentTrackDifficulty();
 		if(!workingTrack.ContainsKey(activeRail.time)) {
 			Debug.Log("Error while finding rail start.");
@@ -112,7 +126,6 @@ public class RailEditor : MonoBehaviour {
 			workingTrack[activeRail.time][1].Segments = poses;
 		}
 		var waveCustom = activeRail.noteGO.transform.Find("LineArea").GetComponentInChildren<Game_LineWaveCustom>();
-
 		if (waveCustom) {
 			waveCustom.targetOptional = poses;
 			waveCustom.RenderLine(true, true);
@@ -177,7 +190,7 @@ public class RailEditor : MonoBehaviour {
 	}
 
 
-	private EditorNote FindNearestRailBack() {
+	public EditorNote FindNearestRailBack() {
 		selectedNoteType = Track.s_instance.selectedNoteType;
 		
 		EditorNote railStart = new EditorNote();

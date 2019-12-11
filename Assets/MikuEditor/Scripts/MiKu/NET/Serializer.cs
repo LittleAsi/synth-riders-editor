@@ -321,6 +321,7 @@ namespace MiKu.NET {
                     string jsonDATA = reader.ReadToEnd();
 					// Update Crouch floats to new Crouch class, if necessary
 					if (!jsonDATA.Contains("UpdatedWithMovementPositions")){
+						Debug.Log("Updating wall formats...");
 						JObject oldJSON = JObject.Parse(jsonDATA);
 						JArray newCrouchEasy = new JArray();
 						JArray newCrouchNormal = new JArray();
@@ -334,37 +335,31 @@ namespace MiKu.NET {
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchEasy.Add(newTime);
-							//Debug.Log("newCrouchEasy: " + newCrouchEasy);
 						}
 						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Normal"].Values()){
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchNormal.Add(newTime);
-							//Debug.Log("newCrouchNormal: " + newCrouchNormal);
 						}
 						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Hard"].Values()){
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchHard.Add(newTime);
-							//Debug.Log("newCrouchHard: " + newCrouchHard);
 						}
 						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Expert"].Values()){
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchExpert.Add(newTime);
-							//Debug.Log("newCrouchExpert: " + newCrouchExpert);
 						}
 						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Master"].Values()){
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchMaster.Add(newTime);
-							//Debug.Log("newCrouchMaster: " + newCrouchMaster);
 						}
 						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Custom"].Values()){
 							JObject newTime = new JObject();
 							newTime.Add("time", sourceCrouch);
 							newCrouchCustom.Add(newTime);
-							//Debug.Log("newCrouchCustom: " + newCrouchCustom);
 						}
 						allNewCrouchDifficulties.Add("Easy", newCrouchEasy.Value<JArray>());
 						allNewCrouchDifficulties.Add("Normal", newCrouchNormal.Value<JArray>());
@@ -374,13 +369,8 @@ namespace MiKu.NET {
 						allNewCrouchDifficulties.Add("Custom", newCrouchCustom.Value<JArray>());
 						Debug.Log("allNewCrouchDifficulties: " + allNewCrouchDifficulties);
 						oldJSON["Crouchs"] = allNewCrouchDifficulties;
-						Serializer.WriteToLogFile("oldJSON[Crouchs]");
-						Serializer.WriteToLogFile(oldJSON["Crouchs"].ToString());
-						Serializer.WriteToLogFile("oldJSON");
-						Serializer.WriteToLogFile(oldJSON.ToString());
 						jsonDATA = JsonConvert.SerializeObject(oldJSON, Formatting.Indented);
-						Serializer.WriteToLogFile("jsonDATA");
-						Serializer.WriteToLogFile(jsonDATA);
+						Debug.Log("Wall format update complete");
 					}
                     ChartData = JsonConvert.DeserializeObject<Chart>(jsonDATA);
                 } catch(Exception) {

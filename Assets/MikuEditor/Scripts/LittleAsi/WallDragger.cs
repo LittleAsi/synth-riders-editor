@@ -19,13 +19,11 @@ public class WallDragger : MonoBehaviour {
 
 	private void Update() {
 		if (isDragging && selectedWall.exists) {
-			//Debug.Log("Currently dragging");
 			Vector3 mousePos = GetPosOnGridFromMouse();
 			if (mousePos.z != 0) { // If the mouse moves out of the grid boundary, don't adjust the wall position
 				Vector3 adjustedPos = mousePos-mouseWallOffset;
 				if (notesArea.SnapToGrip) adjustedPos = gridManager.GetNearestPointOnGrid(adjustedPos);
 				selectedWall.wallGO.transform.position = new Vector3(adjustedPos.x, adjustedPos.y, selectedWall.wallGO.transform.position.z);
-				//Debug.Log(selectedWall.wallGO.transform.position);
 			}
 			if (selectedWall.exists && Input.GetMouseButtonUp(0)) {
 				EndCurrentDrag();
@@ -71,7 +69,6 @@ public class WallDragger : MonoBehaviour {
 			EditorWall draggableWall = new EditorWall();
 			draggableWall.wallGO = hit.transform.parent.gameObject;
 			mouseWallOffset = hit.point-draggableWall.wallGO.transform.position;
-			//Debug.Log("Hit wall name: " + hit.transform.parent.gameObject.name);
 			if (draggableWall.wallGO != null) {
 				draggableWall.slide = Track.TryGetSlideAtPositionZ(draggableWall.wallGO.transform.position.z);
 				if (draggableWall.slide.initialized){ 
@@ -81,7 +78,6 @@ public class WallDragger : MonoBehaviour {
 				} else {
 					draggableWall.crouch = Track.TryGetCrouchAtPositionZ(draggableWall.wallGO.transform.position.z);
 					if (draggableWall.crouch.initialized) {
-						//Debug.Log("Dragging Crouch");
 						draggableWall.exists = true;
 						draggableWall.isCrouch = true;
 						draggableWall.time = draggableWall.crouch.time;
@@ -98,10 +94,8 @@ public class WallDragger : MonoBehaviour {
 		RaycastHit hit;
 		if (Physics.Raycast(ray, out hit, 50f, gridLayer)) {
 			Vector3 pos = hit.point;
-			//Debug.Log("Returning position: " + pos);
 			return pos;
 		}
-		//Debug.Log("Returning position: " + new Vector3(0, 0, 0));
 		return new Vector3(0, 0, 0);
 	}
 }

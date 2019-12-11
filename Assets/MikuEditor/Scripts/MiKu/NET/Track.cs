@@ -1271,11 +1271,11 @@ namespace MiKu.NET {
 						if (_clickedNote != null && _clickedNote.noteGO != null){
 							if (Mathf.RoundToInt(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))==CurrentSelectedMeasure) noteDragger.StartNewDrag();
 							else {
-								if (_editorWall.exists && _editorWall.wallGO != null && (findClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || findClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
+								if (_editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
 								else TryMoveNote(CurrentSelectedMeasure, _clickedNote);
 							}
 						} else if (_editorWall.exists && _editorWall.wallGO){ 
-							if (findClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || findClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure) wallDragger.StartNewDrag();
+							if (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure) wallDragger.StartNewDrag();
 							else TryMoveWall(GetBeatMeasureByUnit(wallDragger.getWallUnderMousePosition().z));
 						}
 					}
@@ -3270,7 +3270,9 @@ namespace MiKu.NET {
                 for(int i = 0; i < pasteContent.effects.Count; ++i) {
                     CurrentSelectedMeasure = pasteContent.effects[i] + (backUpMeasure - pasteContent.startMeasure);
                     if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {                        
-                        ToggleEffectToChart(true);
+                        History.changingHistory = true;
+						ToggleEffectToChart(true);
+						History.changingHistory = false;
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryEffect, true, 0, CurrentSelectedMeasure, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
                     }
                 }
@@ -3278,14 +3280,17 @@ namespace MiKu.NET {
                 for(int i = 0; i < pasteContent.lights.Count; ++i) {
                     CurrentSelectedMeasure = pasteContent.lights[i] + (backUpMeasure - pasteContent.startMeasure);
                     if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) {
-                        ToggleLightsToChart(true);
+                        History.changingHistory = true;
+						ToggleLightsToChart(true);
+						History.changingHistory = false;
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryLight, true, 0, CurrentSelectedMeasure, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
                     }
                 }
 
                 CurrentTime = backUpTime;
                 CurrentSelectedMeasure = backUpMeasure;
-                Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_NotePasteSuccess);	
+                Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_NotePasteSuccess);
+				history.Add(historyEvent);				
             } catch(Exception e){
                 Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, "Clipboard Format Error!");
                 Serializer.WriteToLogFile(e.ToString());
@@ -4127,6 +4132,7 @@ namespace MiKu.NET {
                         LookBackObject foundNote = new LookBackObject();
                         foundNote.note = note;
                         foundNote.isSegment = false;
+						Debug.Log("Found note LBO");
                         return foundNote;
                     } else {
                         Debug.LogError("No overlap note");
@@ -4159,7 +4165,7 @@ namespace MiKu.NET {
                    }
                }
             }  
-
+			Debug.Log("No LBO found!");
             return new LookBackObject(); 
         }
 
@@ -5767,7 +5773,7 @@ namespace MiKu.NET {
                 Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_LongNoteStartPoint);
                 return;
             }
-
+			HistoryEvent historyEvent = new HistoryEvent();
             LongNote workingLongNote = CurrentLongNote;
 
             if (longNote.gameObject) {
@@ -5781,6 +5787,7 @@ namespace MiKu.NET {
             }
 
             // check if there was a previos segment
+			bool isFirstSegment = false;
             if(workingLongNote.lastSegment > 0) {
                 // check if new segment insert larger that the previous segments
                 if(CurrentTime <= workingLongNote.lastSegment) {
@@ -5789,7 +5796,7 @@ namespace MiKu.NET {
                     }					
                     return;
                 }				
-            }
+            } else isFirstSegment = true;
 
             // starting insert proccess
             // updating duration
@@ -5807,16 +5814,27 @@ namespace MiKu.NET {
             // and finally add the gameObject to the segment list
             workingLongNote.segments.Add(noteGO);
             workingLongNote.segmentAxis.Add(YAxisInverse ? -1 : 1);
-			HistoryEvent historyEvent = new HistoryEvent();
-			historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {note.transform.position.x, note.transform.position.y, note.transform.position.z}, new float[,] {}));
+			
+			if(isFirstSegment){
+				// Undoing or redoing the addition of the first segment requires that the change of the parent note to a long note be recorded
+				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, workingLongNote.note.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.note.Position[0], workingLongNote.note.Position[1], workingLongNote.note.Position[2]}, new float[,] {}));
+				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, workingLongNote.note.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.note.Position[0], workingLongNote.note.Position[1], workingLongNote.note.Position[2]}, new float[,] {{note.transform.position.x, note.transform.position.y, note.transform.position.z}}));
+			}
+			else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {note.transform.position.x, note.transform.position.y, note.transform.position.z}, new float[,] {}));
             if(isOnMirrorMode) {
                 GameObject mirroredNoteGO = GameObject.Instantiate(GetNoteMarkerByType(GetMirroreNoteMarkerType(workingLongNote.note.Type), true));
-                mirroredNoteGO.transform.localPosition = GetMirrorePosition(note.transform.position);
+                Vector3 mirrorPosition = GetMirrorePosition(note.transform.position);
+				mirroredNoteGO.transform.localPosition = mirrorPosition;
+				//mirroredNoteGO.transform.localPosition = GetMirrorePosition(note.transform.position);
                 mirroredNoteGO.transform.rotation =	Quaternion.identity;
                 mirroredNoteGO.transform.localScale *= m_NoteSegmentMarkerRedution;
                 mirroredNoteGO.transform.parent = workingLongNote.mirroredObject.transform.Find("LineArea");
                 mirroredNoteGO.name = workingLongNote.mirroredNote.Id+"_Segment";
-				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {mirroredNoteGO.transform.localPosition.x, mirroredNoteGO.transform.localPosition.y, mirroredNoteGO.transform.localPosition.z}, new float[,] {}));
+				if(isFirstSegment){
+					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, workingLongNote.mirroredNote.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.mirroredNote.Position[0], workingLongNote.mirroredNote.Position[1], workingLongNote.mirroredNote.Position[2]}, new float[,] {}));
+					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, workingLongNote.mirroredNote.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.mirroredNote.Position[0], workingLongNote.mirroredNote.Position[1], workingLongNote.mirroredNote.Position[2]}, new float[,] {{mirrorPosition.x, mirrorPosition.y, mirrorPosition.z}}));
+				}
+				else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, GetMirroreNoteMarkerType(workingLongNote.note.Type), Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {mirrorPosition.x, mirrorPosition.y, mirrorPosition.z}, new float[,] {}));
             }
 			history.Add(historyEvent);
             CurrentLongNote = workingLongNote;
@@ -6151,7 +6169,7 @@ namespace MiKu.NET {
                 
                 if(slides.Contains(currSlide)) {
                     lookUpTime = currSlide.time;
-					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, currSlide.slideType, lookUpTime, currSlide.position, new float[,] {}));
+					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, false, currSlide.slideType, lookUpTime, currSlide.position, new float[,] {}));
                     RemoveMovementFromList(slides, lookUpTime, GetSlideTagByType(currSlide.slideType));
                     /* slides.Remove(currSlide);
                     targetToDelete = GameObject.Find(GetMovementIdFormated(lookUpTime, GetSlideTagByType(currSlide.slideType)));
@@ -6568,8 +6586,8 @@ namespace MiKu.NET {
 			if (foundCrouch.initialized) return;
 			Slide foundSlide = workingSlides.Find(x => x.time == CurrentSelectedMeasure);
 			if (foundSlide.initialized) return;
-			float nearestCrouchBeat = findClosestCrouchBeat(_sourceBeat);
-			float nearestSlideBeat = findClosestSlideBeat(_sourceBeat);
+			float nearestCrouchBeat = FindClosestCrouchBeat(_sourceBeat);
+			float nearestSlideBeat = FindClosestSlideBeat(_sourceBeat);
 			foundCrouch = workingCrouches.Find(x => x.time == nearestCrouchBeat);
 			foundSlide = workingSlides.Find(x => x.time == nearestSlideBeat);
 			History.HistoryObjectType historyObjectType;
@@ -6608,6 +6626,7 @@ namespace MiKu.NET {
         /// Add an individual note
         /// </summary>
 		public static void AddIndividualNote(float _beat, float[] _pos, Note.NoteType _type, float[,] _segments){
+			// Only used in Undo and Redo, so history functions not currently included. Make sure to add them if you repurpose this function.
 			Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
 			if(workingTrack != null) {
 				List<Note> notesAtTarget;
@@ -6635,12 +6654,8 @@ namespace MiKu.NET {
 				notesAtTarget.Add(n);
 				s_instance.AddTimeToSFXList(s_instance.GetTimeByMeasure(_beat));
 				if(!workingTrack.ContainsKey(_beat)) workingTrack.Add(_beat, notesAtTarget);
-				if(s_instance.m_FullStatsContainer.activeInHierarchy) {
-					s_instance.GetCurrentStats();
-				}                
-				if(n.Segments != null && n.Segments.GetLength(0) > 0) { 
-					s_instance.UpdateSegmentsList();
-				}	
+				if(s_instance.m_FullStatsContainer.activeInHierarchy) s_instance.GetCurrentStats();     
+				if(n.Segments != null && n.Segments.GetLength(0) > 0) s_instance.UpdateSegmentsList();
 			}			
 		}
 		
@@ -6658,8 +6673,7 @@ namespace MiKu.NET {
         /// </summary>
 		public static void DeleteIndividualNote(Note _noteToDelete){
 			if(_noteToDelete != null) {
-				float noteBeat = s_instance.findClosestNoteBeat(Mathf.RoundToInt(s_instance.GetBeatMeasureByUnit(_noteToDelete.Position[2])));
-				//Debug.Log("noteBeat: " + noteBeat);
+				float noteBeat = s_instance.FindClosestNoteBeat(Mathf.RoundToInt(s_instance.GetBeatMeasureByUnit(_noteToDelete.Position[2])));
 				_noteToDelete = TryGetNoteFromBeatTimeType(noteBeat, _noteToDelete.Type);
 				if (_noteToDelete == null) {
 					Debug.Log("_noteToDelete is null!");
@@ -6702,6 +6716,10 @@ namespace MiKu.NET {
 			// Only used in Undo and Redo, so history functions not currently included. Make sure to add them if you repurpose this function.
 			EditorNote editorNote = new EditorNote();
 			editorNote.noteGO = FindRailNodeGOByPositionAndType(_position, _type);
+			if (editorNote.noteGO==null) {
+				Debug.Log("Rail node game object no found!");
+				return;
+			}
 			TempBeatTimeRef tempBeatTimeRef = editorNote.noteGO.transform.parent.parent.GetComponent<TempBeatTimeRef>();
 			editorNote.note = Track.TryGetNoteFromBeatTimeType(tempBeatTimeRef.beatTime, tempBeatTimeRef.type);
 			editorNote.time = tempBeatTimeRef.beatTime;
@@ -6713,21 +6731,35 @@ namespace MiKu.NET {
 			Note.NoteType selectedNoteTypeBackup = s_instance.selectedNoteType;
 			s_instance.selectedNoteType = _type;
 			Game_LineWaveCustom waveCustom = editorNote.noteGO.transform.parent.GetComponentInChildren<Game_LineWaveCustom>();
-			editorNote.connectedNodes.Remove(editorNote.noteGO.transform);
-			DestroyImmediate(editorNote.noteGO);
-			if (waveCustom) {
-				var segments = s_instance.railEditor.GetLineSegementArrayPoses(editorNote.connectedNodes);
-				//Update the actual values in the note.
-				editorNote.note.Segments = segments;
-				waveCustom.targetOptional = segments;
-				waveCustom.RenderLine(true, true);
-				if(s_instance.FullStatsContainer.activeInHierarchy) {
-					s_instance.GetCurrentStats();
+			if(editorNote.connectedNodes.Count==1){
+				// If this is the only node on the rail, record the before and after states of the parent note instead of the node to avoid errors during Undo; also delete rail line instead of updating.
+				EditorNote activeRail = s_instance.railEditor.FindNearestRailBack();
+				if (!activeRail.exists) {
+					Debug.Log("No active rail found!");
+					return;
+				}
+				Track.HistoryChangeRailNodeParent(activeRail.note.Type, activeRail.time, new float[] {activeRail.note.Position[0], activeRail.note.Position[1], activeRail.note.Position[2]}, activeRail.note.Segments, new float[,] {});
+				editorNote.connectedNodes.Remove(editorNote.noteGO.transform);
+				DestroyImmediate(editorNote.noteGO);
+				DestroyImmediate(waveCustom);
+				editorNote.note.Segments = new float [,] {};
+			}
+			else {
+				Track.HistoryChangeRailNode(editorNote.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(editorNote.noteGO.transform.position.z)), new float[] {editorNote.noteGO.transform.position.x, editorNote.noteGO.transform.position.y, editorNote.noteGO.transform.position.z});
+				editorNote.connectedNodes.Remove(editorNote.noteGO.transform);
+				DestroyImmediate(editorNote.noteGO);
+				if (waveCustom) {
+					var segments = s_instance.railEditor.GetLineSegementArrayPoses(editorNote.connectedNodes);
+					//Update the actual values in the note.
+					editorNote.note.Segments = segments;
+					waveCustom.targetOptional = segments;
+					waveCustom.RenderLine(true, true);
 				}
 			}
+			s_instance.UpdateSegmentsList();
+			if(s_instance.FullStatsContainer.activeInHierarchy) Track.s_instance.GetCurrentStats();
 			s_instance.selectedNoteType = selectedNoteTypeBackup;
 			CurrentSelectedMeasure = beatMeasureBackup;
-			s_instance.UpdateSegmentsList();
 		}
 		
 		/// <summary>
@@ -6815,6 +6847,16 @@ namespace MiKu.NET {
 		}
 		
 		/// <summary>
+        /// Add rail node changes to the history via parent note when there's only one rail node. _added = true for post event state, false for pre event state
+        /// </summary>
+		public static void HistoryChangeRailNodeParent(Note.NoteType _subType, float _beat, float[] _pos, float [,] _originSegments, float [,] _finalSegments){
+			HistoryEvent historyEvent = new HistoryEvent();
+			historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, _subType, _beat, _pos, _originSegments));
+			historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, _subType, _beat, _pos, _finalSegments));
+			s_instance.history.Add(historyEvent);
+		}
+		
+		/// <summary>
         /// Add note drag changes to the history. _added = true for post event state, false for pre event state
         /// </summary>
 		public static void HistoryChangeDragNote(EditorNoteType _type, Note.NoteType _subType, float _beat, float[] _originPos, float[] _finalPos, float[,] _originSegments, float[,] _finalSegments){
@@ -6858,7 +6900,6 @@ namespace MiKu.NET {
 				//Debug.Log("Undoing: " + regrets);
 				float measureBackup = CurrentSelectedMeasure;
 				foreach (HistoryChange regret in regrets) {
-				//for (int i = 0; i < list.Count; i++) {
 					regret.Report();
 					if(regret.Added){ // if added, remove
 						switch(regret.Type) {
@@ -7672,14 +7713,14 @@ namespace MiKu.NET {
 		/// <summary>
         /// Toggle Jump for the current time (no position info)
         /// </summary>
-        public static void ToggleMovementSectionToChart(string MoveTAG, bool isOverwrite = false) {
+        public static void ToggleMovementSectionToChart(string MoveTAG, bool isOverwrite = false, bool forcePlacement = false) {
 			ToggleMovementSectionToChart(MoveTAG, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, isOverwrite);
 		}
 
         /// <summary>
         /// Toggle walls for the current time, now with positions
         /// </summary>
-        public static void ToggleMovementSectionToChart(string MoveTAG, float[] _pos, bool isOverwrite = false) {
+        public static void ToggleMovementSectionToChart(string MoveTAG, float[] _pos, bool isOverwrite = false, bool forcePlacement = false) {
             if(PromtWindowOpen || IsPlaying) return;
             if(s_instance.GetTimeByMeasure(CurrentSelectedMeasure) < MIN_NOTE_START * MS) {
                 Miku_DialogManager.ShowDialog(
@@ -7732,7 +7773,7 @@ namespace MiKu.NET {
 			if(foundSlide.initialized){
 				if(historySubType==foundSlide.slideType && foundSlide.position[0] == _pos[0] && foundSlide.position[1] == _pos[1]){
 					if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_SlideOff);
-					addNew = false;
+					if(!forcePlacement) addNew = false;
 				}
 				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, false, foundSlide.slideType, CurrentSelectedMeasure, foundSlide.position, new float[,] {}));
 				s_instance.RemoveMovementSectionFromChart(MoveTAG, CurrentSelectedMeasure);
@@ -7746,7 +7787,7 @@ namespace MiKu.NET {
 			if(foundCrouch.initialized){
 				if (MoveTAG==CROUCH_TAG && foundCrouch.position[0] == _pos[0] && foundCrouch.position[1] == _pos[1]) {
 					if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_CrouchOff);
-					addNew = false;
+					if(!forcePlacement) addNew = false;
 				}
 				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, false, Note.NoteType.NoHand, CurrentSelectedMeasure, foundCrouch.position, new float[,] {}));
 				s_instance.RemoveMovementSectionFromChart(MoveTAG, CurrentSelectedMeasure);
@@ -7851,7 +7892,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Return closest beat measure with an associated note within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
         /// </summary>
-		public float findClosestNoteBeat(float _beat){
+		public float FindClosestNoteBeat(float _beat){
 			Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();
 			List<float> workingBeats = workingTrack.Keys.ToList();
 			List<float> foundNotes = workingBeats.FindAll(x => x>=_beat-MEASURE_CHECK_TOLERANCE &&  x<=_beat+MEASURE_CHECK_TOLERANCE);
@@ -7878,7 +7919,7 @@ namespace MiKu.NET {
         /// Return closest slide at specified position within MEASURE_CHECK_TOLERANCE
         /// </summary>
         public static Slide TryGetSlideAtPositionZ(float _posZ){
-			float foundBeat = s_instance.findClosestSlideBeat(s_instance.GetBeatMeasureByUnit(_posZ));
+			float foundBeat = s_instance.FindClosestSlideBeat(s_instance.GetBeatMeasureByUnit(_posZ));
 			List<Slide> workingSlideList = s_instance.GetCurrentMovementListByDifficulty();
 			Slide foundSlide = workingSlideList.Find(x => x.time == foundBeat);
 			if (foundSlide.initialized) return foundSlide;
@@ -7888,7 +7929,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Return closest beat measure with an associated segment within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
         /// </summary>
-		public float findClosestSegmentBeat(float _beat){
+		public float FindClosestSegmentBeat(float _beat){
 			List<Segment> foundSegments = segmentsList.FindAll(x => x.measure>=_beat-MEASURE_CHECK_TOLERANCE && x.measure<=_beat+MEASURE_CHECK_TOLERANCE);	
 			if (foundSegments.Count<=0) return 0f;
 			else if (foundSegments.Count==1) return foundSegments.First().measure;
@@ -7909,7 +7950,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Return closest beat measure with an associated slide within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
         /// </summary>
-		public float findClosestSlideBeat(float _beat){
+		public float FindClosestSlideBeat(float _beat){
 			List<Slide> workingSlideList = GetCurrentMovementListByDifficulty();
 			List<Slide> foundSlides = workingSlideList.FindAll(x => x.time>=_beat-MEASURE_CHECK_TOLERANCE && x.time<=_beat+MEASURE_CHECK_TOLERANCE);	
 			if (foundSlides.Count<=0) return 0f;
@@ -7932,7 +7973,7 @@ namespace MiKu.NET {
         /// Return crouch at specified position
         /// </summary>
         public static Crouch TryGetCrouchAtPositionZ(float _posZ){
-			float foundBeat = s_instance.findClosestCrouchBeat(s_instance.GetBeatMeasureByUnit(_posZ));
+			float foundBeat = s_instance.FindClosestCrouchBeat(s_instance.GetBeatMeasureByUnit(_posZ));
 			List<Crouch> workingCrouchList = s_instance.GetCurrentCrouchListByDifficulty();
 			Crouch foundCrouch = workingCrouchList.Find(x => x.time == foundBeat);
 			if (foundCrouch.initialized) return foundCrouch;
@@ -7943,7 +7984,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Return closest beat measure with an associated crouch within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
         /// </summary>
-		public float findClosestCrouchBeat(float _beat){
+		public float FindClosestCrouchBeat(float _beat){
 			List<Crouch> workingCrouchList = GetCurrentCrouchListByDifficulty();
 			List<Crouch> foundCrouches = workingCrouchList.FindAll(x => x.time>=_beat-MEASURE_CHECK_TOLERANCE && x.time<=_beat+MEASURE_CHECK_TOLERANCE);	
 			if (foundCrouches.Count<=0) return 0f;
@@ -9053,6 +9094,13 @@ namespace MiKu.NET {
             } else if(workingList is List<Slide>) {
                 List<Slide> endList = workingList as List<Slide>;
                 Slide index = endList.Find(x => x.time == ms && x.slideType == GetSlideTypeByTag(MoveTAG));
+                if(!index.initialized) {
+                    return;
+                }
+                endList.Remove(index);
+            } else if(workingList is List<Crouch>) {
+                List<Crouch> endList = workingList as List<Crouch>;
+                Crouch index = endList.Find(x => x.time == ms);
                 if(!index.initialized) {
                     return;
                 }
