@@ -14,6 +14,7 @@ using System.Text;
 using System.Runtime.Serialization;
 using System.Reflection;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace MiKu.NET {
     /// <sumary>
@@ -318,6 +319,59 @@ namespace MiKu.NET {
                     memStream.Seek(0, SeekOrigin.Begin);
                     StreamReader reader = new StreamReader( memStream );
                     string jsonDATA = reader.ReadToEnd();
+					// Update Crouch floats to new Crouch class, if necessary
+					if (!jsonDATA.Contains("UpdatedWithMovementPositions")){
+						Debug.Log("Updating wall formats...");
+						JObject oldJSON = JObject.Parse(jsonDATA);
+						JArray newCrouchEasy = new JArray();
+						JArray newCrouchNormal = new JArray();
+						JArray newCrouchHard = new JArray();
+						JArray newCrouchExpert = new JArray();
+						JArray newCrouchMaster = new JArray();
+						JArray newCrouchCustom = new JArray();
+						JObject allNewCrouchDifficulties = new JObject();
+						List<float> currentCrouchs;
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Easy"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchEasy.Add(newTime);
+						}
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Normal"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchNormal.Add(newTime);
+						}
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Hard"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchHard.Add(newTime);
+						}
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Expert"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchExpert.Add(newTime);
+						}
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Master"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchMaster.Add(newTime);
+						}
+						foreach(JToken sourceCrouch in oldJSON["Crouchs"]["Custom"].Values()){
+							JObject newTime = new JObject();
+							newTime.Add("time", sourceCrouch);
+							newCrouchCustom.Add(newTime);
+						}
+						allNewCrouchDifficulties.Add("Easy", newCrouchEasy.Value<JArray>());
+						allNewCrouchDifficulties.Add("Normal", newCrouchNormal.Value<JArray>());
+						allNewCrouchDifficulties.Add("Hard", newCrouchHard.Value<JArray>());
+						allNewCrouchDifficulties.Add("Expert", newCrouchExpert.Value<JArray>());
+						allNewCrouchDifficulties.Add("Master", newCrouchMaster.Value<JArray>());
+						allNewCrouchDifficulties.Add("Custom", newCrouchCustom.Value<JArray>());
+						Debug.Log("allNewCrouchDifficulties: " + allNewCrouchDifficulties);
+						oldJSON["Crouchs"] = allNewCrouchDifficulties;
+						jsonDATA = JsonConvert.SerializeObject(oldJSON, Formatting.Indented);
+						Debug.Log("Wall format update complete");
+					}
                     ChartData = JsonConvert.DeserializeObject<Chart>(jsonDATA);
                 } catch(Exception) {
                     Debug.Log("File made in version previous to 1.8, trying BinaryFormatter");

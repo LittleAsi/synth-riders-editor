@@ -249,7 +249,14 @@ namespace MiKu.NET.Charting {
         /// </value>
         public List<float> Custom { get; set; }
     }
-
+    
+	[Serializable]
+    public struct Crouch {
+        public float time;
+		public float[] position;
+        public bool initialized;
+    }    
+	
     [Serializable]
     /// <summary>
     /// Class for the Crouch Representaion
@@ -258,39 +265,39 @@ namespace MiKu.NET.Charting {
         /// <value>
         /// Crouchs for the easy dificulty
         /// </value>
-        public List<float> Easy { get; set; }
+        public List<Crouch> Easy { get; set; }
 
         /// <value>
         /// Crouchs for the Normal dificulty
         /// </value>
-        public List<float> Normal { get; set; }
+        public List<Crouch> Normal { get; set; }
 
         /// <value>
         /// Crouchs for the Hard dificulty
         /// </value>
-        public List<float> Hard { get; set; }
+        public List<Crouch> Hard { get; set; }
 
         /// <value>
         /// Crouchs for the Expert dificulty
         /// </value>
-        public List<float> Expert { get; set; }
+        public List<Crouch> Expert { get; set; }
 
         /// <value>
         /// Crouchs for the Master dificulty
         /// </value>
-        public List<float> Master { get; set; }
+        public List<Crouch> Master { get; set; }
 
         /// <value>
         /// Crouchs for the Custom dificulty
         /// </value>
-        public List<float> Custom { get; set; }
+        public List<Crouch> Custom { get; set; }
     }
 
     [Serializable]
     public struct Slide {
         public float time;
         public Note.NoteType slideType;
-
+		public float[] position;
         public bool initialized;
     }    
 
@@ -494,6 +501,11 @@ namespace MiKu.NET.Charting {
         public float CustomDifficultySpeed { get; set; }
         
         public bool UsingBeatMeasure { get; set;}
+		
+		/// <value>
+        /// Flag that indicates if the chart has been updated with the Crouch and Slide movement changes
+        /// </value>
+		public bool UpdatedWithMovementPositions { get; set;}
 
         public List<string> Tags { get; set; }
 

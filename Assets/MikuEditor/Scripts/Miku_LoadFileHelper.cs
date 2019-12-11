@@ -260,12 +260,12 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 
 				if(Serializer.ChartData.Crouchs == null) {
 					Crouchs defaultCrouchs = new Crouchs();
-					defaultCrouchs.Easy = new List<float>();
-					defaultCrouchs.Normal = new List<float>();
-					defaultCrouchs.Hard = new List<float>();
-					defaultCrouchs.Expert = new List<float>();
-					defaultCrouchs.Master = new List<float>();
-					defaultCrouchs.Custom = new List<float>();
+					defaultCrouchs.Easy = new List<Crouch>();
+					defaultCrouchs.Normal = new List<Crouch>();
+					defaultCrouchs.Hard = new List<Crouch>();
+					defaultCrouchs.Expert = new List<Crouch>();
+					defaultCrouchs.Master = new List<Crouch>();
+					defaultCrouchs.Custom = new List<Crouch>();
 					
 					Serializer.ChartData.Crouchs = defaultCrouchs;
 				}
@@ -528,12 +528,12 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				defaultJumps.Custom = new List<float>();
 
 				Crouchs defaultCrouchs = new Crouchs();
-				defaultCrouchs.Easy = new List<float>();
-				defaultCrouchs.Normal = new List<float>();
-				defaultCrouchs.Hard = new List<float>();
-				defaultCrouchs.Expert = new List<float>();
-				defaultCrouchs.Master = new List<float>();
-				defaultCrouchs.Custom = new List<float>();
+				defaultCrouchs.Easy = new List<Crouch>();
+				defaultCrouchs.Normal = new List<Crouch>();
+				defaultCrouchs.Hard = new List<Crouch>();
+				defaultCrouchs.Expert = new List<Crouch>();
+				defaultCrouchs.Master = new List<Crouch>();
+				defaultCrouchs.Custom = new List<Crouch>();
 
 				Slides defaultSlides = new Slides();
 				defaultSlides.Easy = new List<Slide>();
@@ -585,6 +585,7 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				chart.Tags = new List<string>();
 				chart.Lights = defaultLights;
 				chart.UsingBeatMeasure = true;
+				chart.UpdatedWithMovementPositions = false;
 				
 				Serializer.ChartData = chart;
 			}
