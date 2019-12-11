@@ -28,6 +28,13 @@ public class NoteDragger : MonoBehaviour {
 	
 	public static bool activated = false;
 
+	void OnApplicationFocus(bool hasFocus)
+	{
+		if(hasFocus) {
+			Deactivate();
+		} 
+	}
+
 
 	private void Update() {
 		if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)) {
