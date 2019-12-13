@@ -1271,10 +1271,10 @@ namespace MiKu.NET {
 						if (_clickedNote != null && _clickedNote.noteGO != null){
 							if (Mathf.RoundToInt(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))==CurrentSelectedMeasure) noteDragger.StartNewDrag();
 							else {
-								if (_editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
+								if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
 								else TryMoveNote(CurrentSelectedMeasure, _clickedNote);
 							}
-						} else if (_editorWall.exists && _editorWall.wallGO){ 
+						} else if (_editorWall != null && _editorWall.exists && _editorWall.wallGO){ 
 							if (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure) wallDragger.StartNewDrag();
 							else TryMoveWall(GetBeatMeasureByUnit(wallDragger.getWallUnderMousePosition().z));
 						}
@@ -1289,22 +1289,22 @@ namespace MiKu.NET {
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
                         EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
 						if(_clickedNote != null && _clickedNote.noteGO != null) {
-                            if (_editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) JumpToMeasure(_editorWall.time);
+                            if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) JumpToMeasure(_editorWall.time);
 							else JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z)));
-                        } else if (_editorWall.exists) JumpToMeasure(_editorWall.time);	
+                        } else if (_editorWall != null && _editorWall.exists) JumpToMeasure(_editorWall.time);	
 					} else if (isCTRLDown && !isALTDown){
 						// CTRL + RM deletes clicked note or wall
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 						EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
 						if (_clickedNote != null && _clickedNote.noteGO != null){
-							if (_editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) {
+							if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) {
 							float currentMeasureBackup = currentSelectedMeasure;
 							CurrentSelectedMeasure = _editorWall.time;
 							ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
 							CurrentSelectedMeasure = currentMeasureBackup;
 						}
 							else DeleteIndividualNote(_clickedNote);	
-						} else if (_editorWall.exists) {
+						} else if (_editorWall != null && _editorWall.exists) {
 							float currentMeasureBackup = currentSelectedMeasure;
 							CurrentSelectedMeasure = _editorWall.time;
 							ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
@@ -6734,7 +6734,7 @@ namespace MiKu.NET {
 			if(editorNote.connectedNodes.Count==1){
 				// If this is the only node on the rail, record the before and after states of the parent note instead of the node to avoid errors during Undo; also delete rail line instead of updating.
 				EditorNote activeRail = s_instance.railEditor.FindNearestRailBack();
-				if (!activeRail.exists) {
+				if (activeRail==null || !activeRail.exists) {
 					Debug.Log("No active rail found!");
 					return;
 				}

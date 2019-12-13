@@ -68,10 +68,11 @@ public class WallDragger : MonoBehaviour {
 		float currentUnit = Track.GetUnitByMeasure(Track.CurrentSelectedMeasure);
 		Ray ray = camera.ScreenPointToRay(Input.mousePosition);
 		hits = Physics.RaycastAll(ray, 50f, layer);
-		if (hits.Length<1) return null; // If nothing is hit, do nothing
+		if (hits.Length<1) return new EditorWall(); // If nothing is hit, do nothing
 		hit = hits[0]; // Start by assuming the first hit is the closest
 		// Check for closer hits
 		for (int i = 0; i < hits.Length; i++) {
+			//Debug.Log("Hit wall name: " + hits[i].transform.gameObject.name);
 			float distanceToCurrentBeat = Mathf.Abs(hits[i].transform.position.z-currentUnit);
 			// Check if hit is closer, filtering anything prior to the current beat (with small tolerance added to accomodate rounding issues)
 			if(distanceToCurrentBeat<lowestDistanceToCurrentBeat && (hits[i].transform.position.z+.001)>=currentUnit){
@@ -79,7 +80,8 @@ public class WallDragger : MonoBehaviour {
 				hit = hits[i];
 			}
 		}
-		if ((hit.transform.position.z+.001)<currentUnit) return null; // If no hits were at or after the current beat, do nothing
+		//Debug.Log("Chosen wall name: " + hit.transform.gameObject.name);
+		if ((hit.transform.position.z+.001)<currentUnit) return new EditorWall(); // If no hits were at or after the current beat, do nothing
 		Renderer rend = hit.transform.GetComponent<Renderer>();
 		EditorWall draggableWall = new EditorWall();
 		draggableWall.wallGO = hit.transform.parent.gameObject;
