@@ -3273,7 +3273,7 @@ namespace MiKu.NET {
                         History.changingHistory = true;
 						ToggleEffectToChart(true);
 						History.changingHistory = false;
-						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryEffect, true, 0, CurrentSelectedMeasure, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
+						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryEffect, true, 0, CurrentSelectedMeasure, new float[] {0, 0, Track.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
                     }
                 }
 
@@ -3283,7 +3283,7 @@ namespace MiKu.NET {
                         History.changingHistory = true;
 						ToggleLightsToChart(true);
 						History.changingHistory = false;
-						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryLight, true, 0, CurrentSelectedMeasure, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
+						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryLight, true, 0, CurrentSelectedMeasure, new float[] {0, 0, Track.GetUnitByMeasure(CurrentSelectedMeasure)}, new float[,] {}));
                     }
                 }
 
@@ -4101,9 +4101,9 @@ namespace MiKu.NET {
         /// </summary>
         /// <param name="_beat">Beat measure to convert</param>
         /// <returns>Returns <typeparamref name="float"/></returns>
-        float GetUnitByMeasure(float _beat, float _fromBPM = 0) {
+        public static float GetUnitByMeasure(float _beat, float _fromBPM = 0) {
             _fromBPM = _fromBPM == 0 ? BPM : _fromBPM;
-			return MStoUnit(GetTimeByMeasure(_beat));
+			return s_instance.MStoUnit(s_instance.GetTimeByMeasure(_beat));
             //return ((((_beat * MINUTE) / _fromBPM) / MAX_MEASURE_DIVIDER ) * UsC);
         }
         
@@ -5588,7 +5588,7 @@ namespace MiKu.NET {
             moveSectGO.transform.localPosition = new Vector3(
                                                 _pos[0],
                                                 _pos[1], 
-                                                s_instance.GetUnitByMeasure(ms)
+                                                Track.GetUnitByMeasure(ms)
                                             );
             moveSectGO.transform.rotation =	Quaternion.identity;
             moveSectGO.transform.parent = s_instance.m_NoNotesElementHolder;
@@ -7714,7 +7714,7 @@ namespace MiKu.NET {
         /// Toggle Jump for the current time (no position info)
         /// </summary>
         public static void ToggleMovementSectionToChart(string MoveTAG, bool isOverwrite = false, bool forcePlacement = false) {
-			ToggleMovementSectionToChart(MoveTAG, new float[] {0, 0, s_instance.GetUnitByMeasure(CurrentSelectedMeasure)}, isOverwrite);
+			ToggleMovementSectionToChart(MoveTAG, new float[] {0, 0, Track.GetUnitByMeasure(CurrentSelectedMeasure)}, isOverwrite);
 		}
 
         /// <summary>
@@ -7736,7 +7736,7 @@ namespace MiKu.NET {
                 Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_LongNoteNotFinalizedEffect);
                 return;
             }
-			float[] finalPos = new float[] {_pos[0], _pos[1], s_instance.GetUnitByMeasure(CurrentSelectedMeasure)};
+			float[] finalPos = new float[] {_pos[0], _pos[1], Track.GetUnitByMeasure(CurrentSelectedMeasure)};
 			HistoryEvent historyEvent = new HistoryEvent();
             GameObject moveGO = null;
             string offText;

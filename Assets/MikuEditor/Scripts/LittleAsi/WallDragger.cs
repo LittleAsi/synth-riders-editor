@@ -62,27 +62,41 @@ public class WallDragger : MonoBehaviour {
 	}
 	
 	public EditorWall WallUnderMouse(Camera camera, LayerMask layer) {
+		RaycastHit[] hits;
 		RaycastHit hit;
+		float lowestDistanceToCurrentBeat = 100f;
+		float currentUnit = Track.GetUnitByMeasure(Track.CurrentSelectedMeasure);
 		Ray ray = camera.ScreenPointToRay(Input.mousePosition);
-		if (Physics.Raycast(ray, out hit, 50f, layer)) {
-			if (!hit.transform) return null;
-			EditorWall draggableWall = new EditorWall();
-			draggableWall.wallGO = hit.transform.parent.gameObject;
-			mouseWallOffset = hit.point-draggableWall.wallGO.transform.position;
-			if (draggableWall.wallGO != null) {
-				draggableWall.slide = Track.TryGetSlideAtPositionZ(draggableWall.wallGO.transform.position.z);
-				if (draggableWall.slide.initialized){ 
+		hits = Physics.RaycastAll(ray, 50f, layer);
+		if (hits.Length<1) return null; // If nothing is hit, do nothing
+		hit = hits[0]; // Start by assuming the first hit is the closest
+		// Check for closer hits
+		for (int i = 0; i < hits.Length; i++) {
+			float distanceToCurrentBeat = Mathf.Abs(hits[i].transform.position.z-currentUnit);
+			// Check if hit is closer, filtering anything prior to the current beat (with small tolerance added to accomodate rounding issues)
+			if(distanceToCurrentBeat<lowestDistanceToCurrentBeat && (hits[i].transform.position.z+.001)>=currentUnit){
+				lowestDistanceToCurrentBeat = distanceToCurrentBeat;
+				hit = hits[i];
+			}
+		}
+		if ((hit.transform.position.z+.001)<currentUnit) return null; // If no hits were at or after the current beat, do nothing
+		Renderer rend = hit.transform.GetComponent<Renderer>();
+		EditorWall draggableWall = new EditorWall();
+		draggableWall.wallGO = hit.transform.parent.gameObject;
+		mouseWallOffset = hit.point-draggableWall.wallGO.transform.position;
+		if (draggableWall.wallGO != null) {
+			draggableWall.slide = Track.TryGetSlideAtPositionZ(draggableWall.wallGO.transform.position.z);
+			if (draggableWall.slide.initialized){ 
+				draggableWall.exists = true;
+				draggableWall.time = draggableWall.slide.time;
+				return draggableWall;
+			} else {
+				draggableWall.crouch = Track.TryGetCrouchAtPositionZ(draggableWall.wallGO.transform.position.z);
+				if (draggableWall.crouch.initialized) {
 					draggableWall.exists = true;
-					draggableWall.time = draggableWall.slide.time;
+					draggableWall.isCrouch = true;
+					draggableWall.time = draggableWall.crouch.time;
 					return draggableWall;
-				} else {
-					draggableWall.crouch = Track.TryGetCrouchAtPositionZ(draggableWall.wallGO.transform.position.z);
-					if (draggableWall.crouch.initialized) {
-						draggableWall.exists = true;
-						draggableWall.isCrouch = true;
-						draggableWall.time = draggableWall.crouch.time;
-						return draggableWall;
-					}
 				}
 			}
 		}
