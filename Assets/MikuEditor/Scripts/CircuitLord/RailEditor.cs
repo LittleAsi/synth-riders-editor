@@ -74,7 +74,8 @@ public class RailEditor : MonoBehaviour {
 			History.changingHistory = changingHistoryBackup;
 		}
 		else {
-			Track.HistoryChangeRailNode(note.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z)), new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
+			//Track.HistoryChangeRailNode(note.note.Type, false, Mathf.RoundToInt(3f*Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z))/3f, new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
+			Track.HistoryChangeRailNode(note.note.Type, false, Track.s_instance.RoundToThird(Track.s_instance.GetBeatMeasureByUnit(note.noteGO.transform.position.z)), new float[] {note.noteGO.transform.position.x, note.noteGO.transform.position.y, note.noteGO.transform.position.z});
 			note.connectedNodes.Remove(note.noteGO.transform);
 			DestroyImmediate(note.noteGO);
 			if (waveCustom) {
@@ -217,7 +218,7 @@ public class RailEditor : MonoBehaviour {
 			foreach (Note n in notes) {
 				//If it's a rail start and it's the same note type as the user has selected.
 				if (n.Segments != null && n.Type == selectedNoteType) {
-					Debug.Log("Rail found! Note ID " + n.Id);
+					//Debug.Log("Rail found! Note ID " + n.Id);
 					
 					railStart.note = n;
 					railStart.type = EditorNoteType.RailStart;

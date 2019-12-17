@@ -1269,7 +1269,7 @@ namespace MiKu.NET {
 						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 						EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
 						if (_clickedNote != null && _clickedNote.noteGO != null){
-							if (Mathf.RoundToInt(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))==CurrentSelectedMeasure) noteDragger.StartNewDrag();
+							if (Mathf.Abs(FindClosestNoteOrSegmentBeat(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))-CurrentSelectedMeasure)<MEASURE_CHECK_TOLERANCE) noteDragger.StartNewDrag();
 							else {
 								if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
 								else TryMoveNote(CurrentSelectedMeasure, _clickedNote);
@@ -1290,7 +1290,7 @@ namespace MiKu.NET {
                         EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
 						if(_clickedNote != null && _clickedNote.noteGO != null) {
                             if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) JumpToMeasure(_editorWall.time);
-							else JumpToMeasure(Mathf.RoundToInt(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z)));
+							else JumpToMeasure(RoundToThird(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z)));
                         } else if (_editorWall != null && _editorWall.exists) JumpToMeasure(_editorWall.time);	
 					} else if (isCTRLDown && !isALTDown){
 						// CTRL + RM deletes clicked note or wall
@@ -1512,7 +1512,6 @@ namespace MiKu.NET {
 
                     if(!isCTRLDown && !isALTDown) {
                         MoveCamera(true, GetNextStepPoint(true));
-                        
                         DrawTrackXSLines();
                         PlayStepPreview();
                     } else if(isCTRLDown) {
@@ -3222,7 +3221,7 @@ namespace MiKu.NET {
                                     copyNote.Segments = copySegments;
                                 }
 								historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, copyNote.Type, newTime, new float[] {copyNote.Position[0], copyNote.Position[1], copyNote.Position[2]}, copyNote.Segments));
-                                AddNoteGameObjectToScene(copyNote);
+                                AddNoteGameObjectToScene(copyNote, newTime);
                                 copyList.Add(copyNote);
                                 UpdateTotalNotes();
                             }
@@ -3380,7 +3379,7 @@ namespace MiKu.NET {
                                     }
                                     copyNote.Segments = copySegments;
                                 }
-                                AddNoteGameObjectToScene(copyNote);
+                                AddNoteGameObjectToScene(copyNote, newTime);
                                 copyList.Add(copyNote);
 								historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, copyNote.Type, newTime, new float[] {copyNote.Position[0], copyNote.Position[1], copyNote.Position[2]}, copyNote.Segments));
                                 UpdateTotalNotes();
@@ -4173,8 +4172,10 @@ namespace MiKu.NET {
             Dictionary<float, List<Note>> workingTrack = GetCurrentTrackDifficulty();   
             if(workingTrack.Count > 0 && showLastPlaceNoted) {
                 List<float> keys_sorted = workingTrack.Keys.ToList();
+                keys_sorted = keys_sorted.FindAll(x => x < CurrentSelectedMeasure);
                 keys_sorted = keys_sorted.OrderByDescending(x => x).ToList();
-                if(keys_sorted[0] < CurrentSelectedMeasure) {
+                //if(keys_sorted[0] < CurrentSelectedMeasure) {
+                if(keys_sorted.Count > 0) {
                     List<Note> notes = workingTrack[keys_sorted[0]];
                     Vector3[] points = new Vector3[notes.Count];
                     Note.NoteType[] types = new Note.NoteType[notes.Count];
@@ -4183,7 +4184,8 @@ namespace MiKu.NET {
                         types[i] = notes[i].Type;
                     }
                     notesArea.SetHistoryCircleColor(points, types);
-                } else {
+				} else {
+                //} else {
                     notesArea.HideHistoryCircle();
                 }
             } else {
@@ -4456,8 +4458,8 @@ namespace MiKu.NET {
         /// <returns>Returns <typeparamref name="float"/></returns>
         float GetNextStepPoint(bool mouseWheel = false) {
             if(currentStepType == StepType.Measure || mouseWheel) {
-                if(lastMeasureDivider > MBPMIncreaseFactor || lastStepWasAObject) { 
-                    CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, true)));
+                if(lastMeasureDivider != MBPMIncreaseFactor || lastStepWasAObject) { 
+                    CurrentSelectedMeasure = RoundToThird(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, true)));
                 } else {
                     CurrentSelectedMeasure += (MAX_MEASURE_DIVIDER/MBPMIncreaseFactor);
                 }
@@ -4469,7 +4471,7 @@ namespace MiKu.NET {
 
                 if(MBPMIncreaseFactor % 3 > 0) {
                     CurrentSelectedMeasure = (int)CurrentSelectedMeasure;
-                }
+                } else if(CurrentSelectedMeasure%1<MEASURE_CHECK_TOLERANCE || (1-CurrentSelectedMeasure%1)<MEASURE_CHECK_TOLERANCE) CurrentSelectedMeasure = Mathf.RoundToInt(CurrentSelectedMeasure);
 
                 CurrentSelectedMeasure = CheckForMeasureError(CurrentSelectedMeasure);
                 lastStepWasAObject = false;
@@ -4495,8 +4497,8 @@ namespace MiKu.NET {
         /// <returns>Returns <typeparamref name="float"/></returns>
         float GetPrevStepPoint(bool mouseWheel = false) {
             if(currentStepType == StepType.Measure || mouseWheel) {
-                if(lastMeasureDivider > MBPMIncreaseFactor || lastStepWasAObject) { 
-                    CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, false)));
+                if(lastMeasureDivider != MBPMIncreaseFactor || lastStepWasAObject) { 
+					CurrentSelectedMeasure = RoundToThird(GetBeatMeasureByTime(GetCloseStepMeasure(CurrentTime, true)));
                 } else {
                     CurrentSelectedMeasure -= (MAX_MEASURE_DIVIDER/MBPMIncreaseFactor);
                 }
@@ -4508,7 +4510,7 @@ namespace MiKu.NET {
 
                 if(MBPMIncreaseFactor % 3 > 0) {
                     CurrentSelectedMeasure = (int)CurrentSelectedMeasure;
-                } 
+                } else if(CurrentSelectedMeasure%1<MEASURE_CHECK_TOLERANCE || (1-CurrentSelectedMeasure%1)<MEASURE_CHECK_TOLERANCE) CurrentSelectedMeasure = Mathf.RoundToInt(CurrentSelectedMeasure);
 
                 CurrentSelectedMeasure = CheckForMeasureError(CurrentSelectedMeasure);
                 lastStepWasAObject = false;
@@ -4705,7 +4707,7 @@ namespace MiKu.NET {
                     CurrentTime = GetCloseStepMeasure(_currentPlayTime, false);
                 }
 
-                CurrentSelectedMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime));
+                CurrentSelectedMeasure = RoundToThird(GetBeatMeasureByTime(CurrentTime));
             }
 
             _currentPlayTime = 0;
@@ -4915,7 +4917,7 @@ namespace MiKu.NET {
 
                             n.Id = FormatNoteName(key, i, n.Type);
                             // And add the note game object to the screen
-                            AddNoteGameObjectToScene(n);
+                            AddNoteGameObjectToScene(n, key);
                             UpdateTotalNotes();
 
                             // Uncoment to enable sound on line end
@@ -5054,7 +5056,7 @@ namespace MiKu.NET {
 
                                 float tms = UnitToMS(segmentPos.z);
                                 segmentsList.Add(new Segment(
-                                    Mathf.RoundToInt(GetBeatMeasureByTime(tms)),
+                                    RoundToThird(GetBeatMeasureByTime(tms)),
                                     note,
                                     i,
                                     false
@@ -5388,7 +5390,7 @@ namespace MiKu.NET {
         /// Instantiate the Note GameObject on the scene
         /// </summary>
         /// <param name="noteData">The Note from where the data for the instantiation will be read</param>
-        GameObject AddNoteGameObjectToScene(Note noteData) {
+        GameObject AddNoteGameObjectToScene(Note noteData, float _beatTime = 0) {
             // And add the note game object to the screen
             GameObject noteGO = GameObject.Instantiate(GetNoteMarkerByType(noteData.Type));
             noteGO.transform.localPosition = new Vector3(
@@ -5399,7 +5401,7 @@ namespace MiKu.NET {
             noteGO.transform.rotation =	Quaternion.identity;
             noteGO.transform.parent = m_NotesHolder;
             noteGO.name = noteData.Id;
-			float _beatTime = Mathf.RoundToInt(GetBeatMeasureByTime(UnitToMS(noteData.Position[2])));
+			if(_beatTime==0) _beatTime = RoundToThird(GetBeatMeasureByTime(UnitToMS(noteData.Position[2])));
             AddBeatTimeToObject(noteGO, _beatTime, noteData.Type);			
             // if note has segments we added it
             if(noteData.Segments != null && noteData.Segments.Length > 0) {
@@ -5820,7 +5822,7 @@ namespace MiKu.NET {
 				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, workingLongNote.note.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.note.Position[0], workingLongNote.note.Position[1], workingLongNote.note.Position[2]}, new float[,] {}));
 				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, workingLongNote.note.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.note.Position[0], workingLongNote.note.Position[1], workingLongNote.note.Position[2]}, new float[,] {{note.transform.position.x, note.transform.position.y, note.transform.position.z}}));
 			}
-			else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {note.transform.position.x, note.transform.position.y, note.transform.position.z}, new float[,] {}));
+			else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, RoundToThird(GetBeatMeasureByTime(CurrentTime)), new float[] {note.transform.position.x, note.transform.position.y, note.transform.position.z}, new float[,] {}));
             if(isOnMirrorMode) {
                 GameObject mirroredNoteGO = GameObject.Instantiate(GetNoteMarkerByType(GetMirroreNoteMarkerType(workingLongNote.note.Type), true));
                 Vector3 mirrorPosition = GetMirrorePosition(note.transform.position);
@@ -5834,7 +5836,7 @@ namespace MiKu.NET {
 					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, workingLongNote.mirroredNote.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.mirroredNote.Position[0], workingLongNote.mirroredNote.Position[1], workingLongNote.mirroredNote.Position[2]}, new float[,] {}));
 					historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, workingLongNote.mirroredNote.Type, workingLongNote.startBeatMeasure, new float[] {workingLongNote.mirroredNote.Position[0], workingLongNote.mirroredNote.Position[1], workingLongNote.mirroredNote.Position[2]}, new float[,] {{mirrorPosition.x, mirrorPosition.y, mirrorPosition.z}}));
 				}
-				else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, GetMirroreNoteMarkerType(workingLongNote.note.Type), Mathf.RoundToInt(GetBeatMeasureByTime(CurrentTime)), new float[] {mirrorPosition.x, mirrorPosition.y, mirrorPosition.z}, new float[,] {}));
+				else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, GetMirroreNoteMarkerType(workingLongNote.note.Type), RoundToThird(GetBeatMeasureByTime(CurrentTime)), new float[] {mirrorPosition.x, mirrorPosition.y, mirrorPosition.z}, new float[,] {}));
             }
 			history.Add(historyEvent);
             CurrentLongNote = workingLongNote;
@@ -6310,7 +6312,7 @@ namespace MiKu.NET {
                     tempTime = GetCloseStepMeasure(_currentPlayTime, false);
                 }
 
-                targetMeasure = Mathf.RoundToInt(GetBeatMeasureByTime(tempTime));            
+                targetMeasure = RoundToThird(GetBeatMeasureByTime(tempTime));            
             } 
             
             if(GetTimeByMeasure(targetMeasure) < MIN_NOTE_START * MS) {
@@ -6332,7 +6334,7 @@ namespace MiKu.NET {
 
             Note n = new Note(gridManager.GetNearestPointOnGrid(new Vector3(0, -0.25f, MStoUnit(GetTimeByMeasure(targetMeasure)))), FormatNoteName(targetMeasure, 1, Note.NoteType.LeftHanded));
             n.Type = Note.NoteType.LeftHanded;
-            AddNoteGameObjectToScene(n);
+            AddNoteGameObjectToScene(n, targetMeasure);
 
             List<Note> notes = new List<Note>();
             notes.Add(n);
@@ -6397,7 +6399,7 @@ namespace MiKu.NET {
                     }
                 }
 				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, n.Type, CurrentSelectedMeasure, n.Position, n.Segments));
-                s_instance.AddNoteGameObjectToScene(n);
+                s_instance.AddNoteGameObjectToScene(n, CurrentSelectedMeasure);
                 workingTrack[CurrentSelectedMeasure].Add(n); 
 				s_instance.history.Add(historyEvent);
                 s_instance.UpdateTotalNotes();
@@ -6477,7 +6479,7 @@ namespace MiKu.NET {
                     }
                 }
                 historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, n.Type, CurrentSelectedMeasure, n.Position, n.Segments));
-                s_instance.AddNoteGameObjectToScene(n);
+                s_instance.AddNoteGameObjectToScene(n, CurrentSelectedMeasure);
                 notes.Add(n); 
 				s_instance.history.Add(historyEvent);
                 if(s_instance.m_FullStatsContainer.activeInHierarchy) {
@@ -6498,7 +6500,14 @@ namespace MiKu.NET {
 				Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
 				if(workingTrack != null) {
 					Note sourceNote = _note.note;
-					List<Note> notesAtSource = workingTrack[_note.time];
+					List<Note> notesAtSource;
+					Debug.Log("_note.time: " + _note.time);
+						if(workingTrack.ContainsKey(_note.time)) {
+							notesAtSource = workingTrack[_note.time];
+						} else {
+							Debug.Log("No note found at source time!");
+							return;
+						}
 					int numNotesAtSource = notesAtSource.Count;
 					List<Note> notesAtTarget;
 					if(workingTrack.ContainsKey(_beat)) {
@@ -6525,7 +6534,7 @@ namespace MiKu.NET {
 						}
 						HistoryEvent historyEvent = new HistoryEvent();
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, n.Type, _beat, new float[] {n.Position[0], n.Position[1], n.Position[2]}, n.Segments));
-						s_instance.AddNoteGameObjectToScene(n);
+						s_instance.AddNoteGameObjectToScene(n, _beat);
 						notesAtTarget.Add(n);
 						s_instance.AddTimeToSFXList(s_instance.GetTimeByMeasure(_beat));
 						if(!workingTrack.ContainsKey(_beat)) workingTrack.Add(_beat, notesAtTarget);
@@ -6650,7 +6659,7 @@ namespace MiKu.NET {
 						n.Segments[i, 2] = _segments[i, 2];
 					}
 				}
-				s_instance.AddNoteGameObjectToScene(n);
+				s_instance.AddNoteGameObjectToScene(n, _beat);
 				notesAtTarget.Add(n);
 				s_instance.AddTimeToSFXList(s_instance.GetTimeByMeasure(_beat));
 				if(!workingTrack.ContainsKey(_beat)) workingTrack.Add(_beat, notesAtTarget);
@@ -6673,7 +6682,7 @@ namespace MiKu.NET {
         /// </summary>
 		public static void DeleteIndividualNote(Note _noteToDelete){
 			if(_noteToDelete != null) {
-				float noteBeat = s_instance.FindClosestNoteBeat(Mathf.RoundToInt(s_instance.GetBeatMeasureByUnit(_noteToDelete.Position[2])));
+				float noteBeat = s_instance.FindClosestNoteBeat(s_instance.RoundToThird(s_instance.GetBeatMeasureByUnit(_noteToDelete.Position[2])));
 				_noteToDelete = TryGetNoteFromBeatTimeType(noteBeat, _noteToDelete.Type);
 				if (_noteToDelete == null) {
 					Debug.Log("_noteToDelete is null!");
@@ -6717,7 +6726,7 @@ namespace MiKu.NET {
 			EditorNote editorNote = new EditorNote();
 			editorNote.noteGO = FindRailNodeGOByPositionAndType(_position, _type);
 			if (editorNote.noteGO==null) {
-				Debug.Log("Rail node game object no found!");
+				Debug.Log("Rail node game object not found!");
 				return;
 			}
 			TempBeatTimeRef tempBeatTimeRef = editorNote.noteGO.transform.parent.parent.GetComponent<TempBeatTimeRef>();
@@ -6745,7 +6754,7 @@ namespace MiKu.NET {
 				editorNote.note.Segments = new float [,] {};
 			}
 			else {
-				Track.HistoryChangeRailNode(editorNote.note.Type, false, Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(editorNote.noteGO.transform.position.z)), new float[] {editorNote.noteGO.transform.position.x, editorNote.noteGO.transform.position.y, editorNote.noteGO.transform.position.z});
+				Track.HistoryChangeRailNode(editorNote.note.Type, false, s_instance.RoundToThird(Track.s_instance.GetBeatMeasureByUnit(editorNote.noteGO.transform.position.z)), new float[] {editorNote.noteGO.transform.position.x, editorNote.noteGO.transform.position.y, editorNote.noteGO.transform.position.z});
 				editorNote.connectedNodes.Remove(editorNote.noteGO.transform);
 				DestroyImmediate(editorNote.noteGO);
 				if (waveCustom) {
@@ -7341,7 +7350,7 @@ namespace MiKu.NET {
                     if(workingTrack.ContainsKey(CurrentSelectedMeasure)) {
                         // print("Trying currentTime "+CurrentTime);
                         workingTrack[CurrentSelectedMeasure].Add(n);
-                        s_instance.AddNoteGameObjectToScene(n);
+                        s_instance.AddNoteGameObjectToScene(n, CurrentSelectedMeasure);
                         s_instance.UpdateTotalNotes();	
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, n.Type, CurrentSelectedMeasure, new float[] {n.Position[0], n.Position[1], n.Position[2]}, n.Segments));
                         if(s_instance.m_FullStatsContainer.activeInHierarchy) {
@@ -7357,13 +7366,13 @@ namespace MiKu.NET {
                         longNote.startTime = CurrentTime;
                         longNote.startBeatMeasure = CurrentSelectedMeasure;
                         longNote.note = n;
-                        longNote.gameObject = s_instance.AddNoteGameObjectToScene(n);
+                        longNote.gameObject = s_instance.AddNoteGameObjectToScene(n, CurrentSelectedMeasure);
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, n.Type, CurrentSelectedMeasure, new float[] {n.Position[0], n.Position[1], n.Position[2]}, n.Segments));
                         if(IsOnMirrorMode) {
                             Note mirroredN = new Note(GetMirrorePosition(note.transform.position), FormatNoteName(CurrentSelectedMeasure, s_instance.TotalNotes + 2, GetMirroreNoteMarkerType(n.Type)));
                             mirroredN.Type = GetMirroreNoteMarkerType(n.Type);
                             longNote.mirroredNote = mirroredN;
-                            longNote.mirroredObject = s_instance.AddNoteGameObjectToScene(mirroredN);
+                            longNote.mirroredObject = s_instance.AddNoteGameObjectToScene(mirroredN, CurrentSelectedMeasure);
 							historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, mirroredN.Type, CurrentSelectedMeasure, new float[] {mirroredN.Position[0], mirroredN.Position[1], mirroredN.Position[2]}, mirroredN.Segments));
                         }
                         longNote.lastSegment = 0;
@@ -7890,6 +7899,21 @@ namespace MiKu.NET {
 #endregion
 
 		/// <summary>
+        /// Return closest beat measure with an associated note or segment within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
+        /// </summary>
+		public float FindClosestNoteOrSegmentBeat(float _beat){
+			float noteBeat = FindClosestNoteBeat(_beat);
+			float segmentBeat = FindClosestSegmentBeat(_beat);
+			if(noteBeat!=0f){
+				if(segmentBeat!=0f){
+					if (Mathf.Abs(noteBeat-_beat)<=Mathf.Abs(segmentBeat-_beat)) return noteBeat;
+					else return segmentBeat;
+				} else return noteBeat;
+			} else if(segmentBeat!=0f) return segmentBeat;
+			return 0f;
+		}
+		
+		/// <summary>
         /// Return closest beat measure with an associated note within MEASURE_CHECK_TOLERANCE of the supplied beat measure (to dodge rounding and floating point errors)
         /// </summary>
 		public float FindClosestNoteBeat(float _beat){
@@ -8002,6 +8026,13 @@ namespace MiKu.NET {
 			}
 			return 0f;
 		}	
+		
+		/// <summary>
+        /// Round the passed float to the nearest 1/3
+        /// </summary>
+		public float RoundToThird(float _value){
+			return (Mathf.RoundToInt(3f*_value)/3f);
+		}
 		
         public void ToggleMovementSectionToChart(int MoveTAGIndex){
              ToggleMovementSectionToChart(GetMoveTagTypeByIndex(MoveTAGIndex));
@@ -9667,6 +9698,14 @@ namespace MiKu.NET {
             get
             {
                 return segmentsList;
+            }
+        }
+		
+		public static float MeasureCheckTolerance
+        {
+            get
+            {
+                return Track.MEASURE_CHECK_TOLERANCE;
             }
         }
         #endregion
