@@ -110,14 +110,14 @@ public class NoteDragger : MonoBehaviour {
 				waveCustom.targetOptional = segments;
 				waveCustom.RenderLine(true, true);
 			}			
-			List<Segment> segmentsList = Track.s_instance.SegmentsList.FindAll(x => x.measure == Track.CurrentSelectedMeasure && x.note.Type == selectedNote.note.Type);
+			List<Segment> segmentsList = Track.s_instance.SegmentsList.FindAll(x => (Mathf.Abs(x.measure-Track.CurrentSelectedMeasure)<Track.MeasureCheckTolerance) && x.note.Type == selectedNote.note.Type);
 			if(segmentsList == null || segmentsList.Count <= 0) { 
 				Debug.Log("Error finding segment!");
 			} else {
 				Note parentNote = segmentsList.First().note;
 				if (parentNote==null) Debug.Log("Error finding parent note!");
 				else {
-					float noteBeat = Track.s_instance.FindClosestNoteBeat(Mathf.RoundToInt(Track.s_instance.GetBeatMeasureByUnit(parentNote.Position[2])));
+					float noteBeat = Track.s_instance.FindClosestNoteBeat(Track.s_instance.GetBeatMeasureByUnit(parentNote.Position[2]));
 					// Instead of recording a change in position to an individual node, we have to record the before and after state of the parent note; otherwise there will be Undo errors when the moved node is the only node on the rail.
 					Track.HistoryChangeRailNodeParent(selectedNote.note.Type, noteBeat, new float[] {parentNote.Position[0], parentNote.Position[1], parentNote.Position[2]}, originNote.note.Segments, parentNote.Segments);
 				}

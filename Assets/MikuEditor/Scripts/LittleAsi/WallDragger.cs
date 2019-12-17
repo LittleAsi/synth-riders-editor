@@ -20,11 +20,9 @@ public class WallDragger : MonoBehaviour {
 	private void Update() {
 		if (isDragging && selectedWall.exists) {
 			Vector3 mousePos = GetPosOnGridFromMouse();
-			if (mousePos.z != 0) { // If the mouse moves out of the grid boundary, don't adjust the wall position
-				Vector3 adjustedPos = mousePos-mouseWallOffset;
-				if (notesArea.SnapToGrip) adjustedPos = gridManager.GetNearestPointOnGrid(adjustedPos);
-				selectedWall.wallGO.transform.position = new Vector3(adjustedPos.x, adjustedPos.y, selectedWall.wallGO.transform.position.z);
-			}
+			Vector3 adjustedPos = mousePos-mouseWallOffset;
+			if (notesArea.SnapToGrip) adjustedPos = gridManager.GetNearestPointOnGrid(adjustedPos);
+			selectedWall.wallGO.transform.position = new Vector3(adjustedPos.x, adjustedPos.y, selectedWall.wallGO.transform.position.z);
 			if (selectedWall.exists && Input.GetMouseButtonUp(0)) {
 				EndCurrentDrag();
 			}
@@ -108,7 +106,7 @@ public class WallDragger : MonoBehaviour {
 	private Vector3 GetPosOnGridFromMouse() {
 		Ray ray = activatedCamera.ScreenPointToRay(Input.mousePosition);
 		RaycastHit hit;
-		if (Physics.Raycast(ray, out hit, 50f, gridLayer)) {
+		if (Physics.Raycast(ray, out hit, 50f, (wallsLayer | gridLayer))) {
 			Vector3 pos = hit.point;
 			return pos;
 		}

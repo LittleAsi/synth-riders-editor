@@ -16,7 +16,7 @@ public static class NoteRayUtil {
 
 			EditorNote draggableNote = new EditorNote();
 			
-			Debug.Log("Hit note name: " + hit.transform.gameObject.name);
+			//Debug.Log("Hit note name: " + hit.transform.gameObject.name);
 
 			//If it's a rail node segment.
 			if (hit.transform.gameObject.name.EndsWith("_Segment")) {
