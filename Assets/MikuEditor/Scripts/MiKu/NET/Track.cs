@@ -692,7 +692,7 @@ namespace MiKu.NET {
         private float MBPM = 1f/1f;
         private float MBPMIncreaseFactor = 1f;
 
-        private List<int> foursStepCycle = new List<int>() {1, 4, 8, 16, 32, 64 };
+        private List<int> foursStepCycle = new List<int>() {1, 2, 4, 8, 16, 32, 64 };
         private List<int> threesStepCycle = new List<int>() {1, 3, 6, 12, 24, 48};
         private List<int> allStepCycle = new List<int>() {1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 64};
         

@@ -25,6 +25,10 @@ public static class NoteRayUtil {
 				TempBeatTimeRef tempBeatTimeRef = draggableNote.noteGO.transform.parent.parent.GetComponent<TempBeatTimeRef>();
 				
 				draggableNote.note = Track.TryGetNoteFromBeatTimeType(tempBeatTimeRef.beatTime, tempBeatTimeRef.type);
+				if(draggableNote.note == null) {
+					return null;
+				}
+				
 				draggableNote.time = tempBeatTimeRef.beatTime;
 				
 				//draggableNote.note = Track.TryGetNoteFromName(hit.transform.parent.parent.gameObject.name);
@@ -46,6 +50,9 @@ public static class NoteRayUtil {
 				//draggableNote.note = Track.TryGetNoteFromName(draggableNote.noteGO.name);
 				TempBeatTimeRef tempBeatTimeRef = draggableNote.noteGO.transform.GetComponent<TempBeatTimeRef>();
 				draggableNote.note = Track.TryGetNoteFromBeatTimeType(tempBeatTimeRef.beatTime, tempBeatTimeRef.type);
+				if(draggableNote.note == null) {
+					return null;
+				}
 				
 				draggableNote.time = tempBeatTimeRef.beatTime;
 

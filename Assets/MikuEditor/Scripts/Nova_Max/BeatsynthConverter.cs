@@ -96,7 +96,7 @@ public static class BeatSynthConverter
 
                         string id = i.ToString() + "," + j.ToString();
 
-                        Note note = new Note(pos, id,-1, type);
+                        Note note = new Note(pos, id, -1, type);
 
                         if (!track.ContainsKey(time))
                         {
