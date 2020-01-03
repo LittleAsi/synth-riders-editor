@@ -20,7 +20,7 @@ public class UITabNavigator : MonoBehaviour
         if (Input.GetKeyDown(KeyCode.Tab))
         {
             // Navigate backward when holding shift, else navigate forward.
-            this.HandleHotkeySelect(Input.GetKey(KeyCode.LeftShift) || Input.GetKey(KeyCode.RightShift), false);
+            this.HandleHotkeySelect((Controller.controller.isMod3Down), false);
         }
     }
  

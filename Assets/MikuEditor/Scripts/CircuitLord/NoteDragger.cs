@@ -37,11 +37,18 @@ public class NoteDragger : MonoBehaviour {
 
 
 	private void Update() {
-		if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)) {
-			Activate();
-		}
+		//if (Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt)) {
+		//if (Controller.controller.GetKeyDown("DragSnapObjectAction")) {
+		//	Activate();
+		//}
 
-		else if (Input.GetKeyUp(KeyCode.LeftAlt) || Input.GetKeyUp(KeyCode.RightAlt)) {
+		//else if (Input.GetKeyUp(KeyCode.LeftAlt) || Input.GetKeyUp(KeyCode.RightAlt)) {
+		if (Controller.controller.GetKeyUp("DragSnapObjectAction")) {
+			if (isDragging && selectedNote.exists) {
+				Vector3 snappedPos = gridManager.GetNearestPointOnGrid(GetPosOnGridFromMouse());
+				selectedNote.noteGO.transform.position = new Vector3(snappedPos.x, snappedPos.y, selectedNote.noteGO.transform.position.z);
+			}
+			if(selectedNote.exists) EndCurrentDrag();
 			Deactivate();
 		}
 
@@ -60,14 +67,15 @@ public class NoteDragger : MonoBehaviour {
 		}
 
 
-		if (selectedNote.exists && Input.GetMouseButtonUp(0)) {
+		/* if (selectedNote.exists && Input.GetMouseButtonUp(0)) {
 			EndCurrentDrag();
-		}
+		} */
 	}
 
 
 	public void Activate() {
 		activated = true;
+		NotesArea.s_instance.DisableSelectedNote();
 	}
 
 	public void Deactivate() {
@@ -77,6 +85,7 @@ public class NoteDragger : MonoBehaviour {
 
 
 	public void StartNewDrag() {
+		Activate();
 		selectedNote = NoteRayUtil.NoteUnderMouse(activatedCamera, notesLayer);
 		originNote = new EditorNote();
 		originNote.note = new Note(new Vector3(0, 0, 0));
@@ -157,7 +166,7 @@ public class NoteDragger : MonoBehaviour {
 	}
 
 
-	private Vector3 GetPosOnGridFromMouse() {
+	public Vector3 GetPosOnGridFromMouse() {
 		Ray ray = activatedCamera.ScreenPointToRay(Input.mousePosition);
 
 		RaycastHit hit;
