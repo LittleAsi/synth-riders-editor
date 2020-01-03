@@ -276,7 +276,7 @@ namespace MiKu.NET {
         private const int MAX_MEASURE_DIVIDER = 64;
 		
 		// Tolerance allowed when searching for objects by a calculated beat measure (to dodge rounding issues and floating point errors)
-        private const float MEASURE_CHECK_TOLERANCE = 1f/(MAX_MEASURE_DIVIDER*3f);
+        private const float MEASURE_CHECK_TOLERANCE = 1f/(MAX_MEASURE_DIVIDER*2.9f);
 
         // Tags for the movments sections
         private const string JUMP_TAG = "Jump";
@@ -554,6 +554,9 @@ namespace MiKu.NET {
 
         [SerializeField]
         private Animator m_HelpWindowAnimator;
+		
+		[SerializeField]
+        private Animator m_KeyBindingWindowAnimator;
 
         [SerializeField]
         private Animator m_SaveLoaderAnimator;
@@ -663,10 +666,8 @@ namespace MiKu.NET {
         [Header("Tools")]
 		[SerializeField]
         private WallDragger wallDragger;
-		
         [SerializeField]
         private NoteDragger noteDragger;
-        
         [SerializeField]
         private RailEditor railEditor;
 
@@ -1035,795 +1036,184 @@ namespace MiKu.NET {
             lastSaveTime += Time.deltaTime;
             keyHoldTime = keyHoldTime + Time.deltaTime;
 
-            // Input.GetKeyDown(KeyCode.LeftControl) || Input.GetKeyDown(KeyCode.RightControl)
-            if(Input.GetButtonDown("Input Modifier1"))
-            {
-                isCTRLDown = true;
+			isCTRLDown = Controller.controller.isMod1Down;
+			isALTDown = Controller.controller.isMod2Down;
+			isSHIFDown = Controller.controller.isMod3Down;
+			
+			if(Controller.controller.GetKeyDown("ToggleSelectionAreaAction")) {
+                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen) {
+                    ToggleSelectionArea();
+                }				
             }
-
-            // Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)
-            if(Input.GetButtonUp("Input Modifier1")) {
-                isCTRLDown = false;
-            }
-
-            // Input.GetKeyDown(KeyCode.LeftAlt)
-            if(Input.GetButtonDown("Input Modifier2")) {
-                isALTDown = true;
-            }
-
-            // Input.GetKeyUp(KeyCode.LeftAlt)
-            if(Input.GetButtonUp("Input Modifier2")) {
-                isALTDown = false;
-            }
-
-            if(Input.GetKeyDown(KeyCode.N))
-            {
-                isKeyboardAddNoteDown = true;
-                if(isPlaying) {
-                    TryAdddNoteToGridCenter();
+			
+			if(Controller.controller.GetKeyUp("ToggleSelectionAreaAction")) {
+                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen) {
+                    ToggleSelectionArea(true);
                 }
             }
-
-            // Input.GetKeyUp(KeyCode.LeftControl) || Input.GetKeyUp(KeyCode.RightControl)
-            if(Input.GetKeyUp(KeyCode.N)) {
+			
+			if(Controller.controller.GetKeyUp("AddNoteWhilePlayingAction")) {
                 if(isKeyboardAddNoteDown && !isPlaying && !promtWindowOpen) {
                     notesArea.AddNoteOnClick();
                 }
                 isKeyboardAddNoteDown = false;
             }
 
-            // Input.GetKeyDown(KeyCode.LeftAlt)
-            if(Input.GetButtonDown("Input Modifier3")) {
-                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying) {
-                    isSHIFDown = true;
-                    RefreshCurrentTime();
-                    ToggleSelectionArea();
-                }				
-            }
-
-            // Input.GetKeyUp(KeyCode.LeftAlt)
-            if(Input.GetButtonUp("Input Modifier3")) {
-                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying) {
-                    isSHIFDown = false;
-                    ToggleSelectionArea(true);
-                }
-            }
-
 #region Keyboard Shorcuts
-            // Change Step and BPM
-            // Input.GetKey(KeyCode.RightArrow)
-            float hortAxis = 0;            
-            if(Input.GetAxis("Horizontal")!= 0) {
-                hortAxis = Input.GetAxis("Horizontal");
-            } 
+			// Change Step and BPM
+			float hortAxis = 0;            
+			if(Input.GetAxis("Horizontal")!= 0) {
+				hortAxis = Input.GetAxis("Horizontal");
+			} else if(Controller.controller.IsKeyBindingPressed("AdjustBeatStepMeasureDownAction")) hortAxis = -1;
+			else if(Controller.controller.IsKeyBindingPressed("AdjustBeatStepMeasureUpAction")) hortAxis = 1;
+			else if(Controller.controller.IsKeyBindingPressed("AdjustPlaybackSpeedMeasureDownAction")) hortAxis = -1;
+			else if(Controller.controller.IsKeyBindingPressed("AdjustPlaybackSpeedMeasureUpAction")) hortAxis = 1;
+			else if(SelectedCamera != m_FreeViewCamera && Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningLeftAction")) hortAxis = -1;
+			else if(SelectedCamera != m_FreeViewCamera && Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningRightAction")) hortAxis = 1;
 
-            if(Input.GetAxis("Horizontal Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
-                hortAxis = Input.GetAxis("Horizontal Free Camera");
-            } 
-
-            // Movement on the track
-            // Input.GetKey(KeyCode.DownArrow)
-            float vertAxis = 0;
-            if(Input.GetAxis("Vertical") != 0) {
-                vertAxis = Input.GetAxis("Vertical");
-                // Debug.LogError(vertAxis);
-            } 
-
-            if(Input.GetAxis("Vertical Free Camera") != 0 && SelectedCamera != m_FreeViewCamera) {
-                vertAxis = Input.GetAxis("Vertical Free Camera");
-            }
-
-            if(hortAxis == 0 && vertAxis == 0 && SelectedCamera != m_FreeViewCamera ) {
-                nextKeyHold = -1;
-            }
-
-            if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen) {
-                nextKeyHold = keyHoldTime + keyHoldDelta;
-                if(!IsPlaying) {
-                    
-                    if(!isKeyboardAddNoteDown) {
-                        if(!isCTRLDown) {
-                            ChangeStepMeasure(hortAxis > 0);
-                        }
-                    } 
-                    		
-                } else {
-                    ChangePlaySpeed(hortAxis > 0);
-                }
-                nextKeyHold = nextKeyHold - keyHoldTime;
-                keyHoldTime = 0.0f;				
-            }            
-
-            if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown) {
-                nextKeyHold = keyHoldTime + keyHoldDelta;
-
-                if(!IsPlaying) {
-                    if(!isKeyboardAddNoteDown) {
-                        MoveCamera(true, GetPrevStepPoint());
-                        DrawTrackXSLines();
-                        PlayStepPreview();
-                    }                    
-                } else {
-                    TogglePlay();                    
-                    MoveCamera(true, GetPrevStepPoint());
-                    DrawTrackXSLines();
-                    TogglePlay();
-                }
-                
-
-                nextKeyHold = nextKeyHold - keyHoldTime;
-                keyHoldTime = 0.0f;
-            }
-            
-            // Input.GetKey(KeyCode.UpArrow)
-            if( vertAxis > 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown) {				
-                nextKeyHold = keyHoldTime + keyHoldDelta;
-
-                if(!isPlaying) {
-                    if(!isKeyboardAddNoteDown) {
-                        MoveCamera(true, GetNextStepPoint());
-                        DrawTrackXSLines();
-                        PlayStepPreview();
-                    }
-                } else {
-                    TogglePlay();
-                    MoveCamera(true, GetNextStepPoint());
-                    DrawTrackXSLines();
-                    TogglePlay();
-                }
-                
-                nextKeyHold = nextKeyHold - keyHoldTime;
-                keyHoldTime = 0.0f;				
-            }
-
-            // Delete all the notes of the current difficulty
-            // Input.GetKeyDown(KeyCode.Delete) 
-            if( Input.GetButtonDown("Delete") && !PromtWindowOpen) {
-                if(isCTRLDown && !IsPlaying) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-                    DoClearNotePositions();
-                } else if(!IsPlaying) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-                    DeleteNotesAtTheCurrentTime();
-                    UpdateSegmentsList();
-                }
-            }
-
-            // Return to start time
-            // Input.GetKeyDown(KeyCode.Home)
-            if(Input.GetButtonDown("Timeline Start") && !PromtWindowOpen) {
-                if(!IsPlaying) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-                    ReturnToStartTime();
-                    DrawTrackXSLines();
-                }
-            }		
-
-            // Input.GetKeyDown(KeyCode.End)
-            if(Input.GetButtonDown("Timeline End") && !PromtWindowOpen) {
-                if(!IsPlaying) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-                    GoToEndTime();
-                    DrawTrackXSLines();
-                }
-            }		
-
-            // Play/Stop
-            // Input.GetKeyDown(KeyCode.Space)
-            if((Input.GetButtonDown("Play") || (Input.GetButtonDown("PlayReturn") && !isSHIFDown))  && !PromtWindowOpen) {
-                CloseSpecialSection();
-                FinalizeLongNoteMode();
-                TogglePlay(Input.GetButton("PlayReturn"));
-            }
-
-            // Close the promt window or do Return to menu promt
-            if(Input.GetButtonDown("Cancel")) {
-            //if(Input.GetKeyDown(KeyCode.Escape)) {
-                if(PromtWindowOpen) {
-                    ClosePromtWindow();					
-                } else if(helpWindowOpen) {
-                    ToggleHelpWindow();
-                } else {
-                    if(CurrentSelection.endTime > CurrentSelection.startTime) {
-                        ClearSelectionMarker();						
-                    } else {
-                        DoReturnToMainMenu();
-                    }					
-                }
-            }
-            
-            if(Input.GetButtonDown("Submit")) {
-            // Accept promt action
-            //if(Input.GetKeyDown(KeyCode.Return)) {
-                if(PromtWindowOpen) {
-                    OnAcceptPromt();
-                }
-            }
-
-            // Save Action
-            if(Input.GetKeyDown(KeyCode.S)) {
-                if(isCTRLDown && !IsPlaying) {
-                    DoSaveAction();					
-                }				
-            }
+			// Movement on the track
+			float vertAxis = 0;
+			if(Input.GetAxis("Vertical") != 0) {
+				vertAxis = Input.GetAxis("Vertical");
+			} else if(Controller.controller.IsKeyBindingPressed("MoveBackwardOnTimelineAction")) vertAxis = -1;
+			else if(Controller.controller.IsKeyBindingPressed("MoveForwardOnTimelineAction")) vertAxis = 1;
+			else if(SelectedCamera != m_FreeViewCamera && Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningDownAction")) vertAxis = -1;
+			else if(SelectedCamera != m_FreeViewCamera && Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningUpAction")) vertAxis = 1;
 			
-            if(Input.GetMouseButtonDown(0)) {
-				if(!PromtWindowOpen && !isPlaying) {
-					if (isALTDown && isCTRLDown){
-						// CTRL + ALT + LM adds mirror
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-                        if(_clickedNote != null && _clickedNote.noteGO != null) {
-                            TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
-                        }						
-					}
-					else if (isALTDown && !isCTRLDown){
-						// ALT + LM performs these actions in the listed priority:
-						// 1. Starts note drag if the note is already on the cursor position
-						// 2. Starts wall drag if the wall is already on the cursor position
-						// 3. Moves the clicked note to the current cursor position
-						// 4. Moves the clicked wall to the current cursor position
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
-						if (_clickedNote != null && _clickedNote.noteGO != null){
-							if (Mathf.Abs(FindClosestNoteOrSegmentBeat(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))-CurrentSelectedMeasure)<MEASURE_CHECK_TOLERANCE) noteDragger.StartNewDrag();
-							else {
-								if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
-								else TryMoveNote(CurrentSelectedMeasure, _clickedNote);
-							}
-						} else if (_editorWall != null && _editorWall.exists && _editorWall.wallGO){ 
-							if (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure) wallDragger.StartNewDrag();
-							else TryMoveWall(GetBeatMeasureByUnit(wallDragger.getWallUnderMousePosition().z));
+			if(hortAxis == 0 && vertAxis == 0 && SelectedCamera != m_FreeViewCamera ) {
+				nextKeyHold = -1;
+			}
+
+			if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen && !helpWindowOpen) {
+				nextKeyHold = keyHoldTime + keyHoldDelta;
+				if(!IsPlaying) {
+					
+					if(!isKeyboardAddNoteDown) {
+						if(!isCTRLDown) {
+							ChangeStepMeasure(hortAxis > 0);
 						}
-					}
+					} 
+							
+				} else {
+					ChangePlaySpeed(hortAxis > 0);
 				}
+				nextKeyHold = nextKeyHold - keyHoldTime;
+				keyHoldTime = 0.0f;				
+			}            
+
+			if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen) {
+				nextKeyHold = keyHoldTime + keyHoldDelta;
+
+				if(!IsPlaying) {
+					if(!isKeyboardAddNoteDown) {
+						MoveCamera(true, GetPrevStepPoint());
+						DrawTrackXSLines();
+						PlayStepPreview();
+					}                    
+				} else {
+					TogglePlay();                    
+					MoveCamera(true, GetPrevStepPoint());
+					DrawTrackXSLines();
+					TogglePlay();
+				}
+				
+
+				nextKeyHold = nextKeyHold - keyHoldTime;
+				keyHoldTime = 0.0f;
 			}
 			
-			if(Input.GetMouseButtonDown(1)) {
-				if(!PromtWindowOpen && !isPlaying) {
-					if (isALTDown && !isCTRLDown){
-						// Alt + RM moves cursor to clicked note or wall position
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-                        EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
-						if(_clickedNote != null && _clickedNote.noteGO != null) {
-                            if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) JumpToMeasure(_editorWall.time);
-							else JumpToMeasure(RoundToThird(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z)));
-                        } else if (_editorWall != null && _editorWall.exists) JumpToMeasure(_editorWall.time);	
-					} else if (isCTRLDown && !isALTDown){
-						// CTRL + RM deletes clicked note or wall
-						EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
-						EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
-						if (_clickedNote != null && _clickedNote.noteGO != null){
-							if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) {
-							float currentMeasureBackup = currentSelectedMeasure;
-							CurrentSelectedMeasure = _editorWall.time;
-							ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
-							CurrentSelectedMeasure = currentMeasureBackup;
-						}
-							else DeleteIndividualNote(_clickedNote);	
-						} else if (_editorWall != null && _editorWall.exists) {
-							float currentMeasureBackup = currentSelectedMeasure;
-							CurrentSelectedMeasure = _editorWall.time;
-							ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
-							CurrentSelectedMeasure = currentMeasureBackup;
-						}
+			if( vertAxis > 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen) {				
+				nextKeyHold = keyHoldTime + keyHoldDelta;
+
+				if(!isPlaying) {
+					if(!isKeyboardAddNoteDown) {
+						MoveCamera(true, GetNextStepPoint());
+						DrawTrackXSLines();
+						PlayStepPreview();
 					}
+				} else {
+					TogglePlay();
+					MoveCamera(true, GetNextStepPoint());
+					DrawTrackXSLines();
+					TogglePlay();
 				}
+				
+				nextKeyHold = nextKeyHold - keyHoldTime;
+				keyHoldTime = 0.0f;				
 			}
-			
-            if(Input.GetMouseButtonDown(2)) {
-                if(!PromtWindowOpen && !isPlaying) {
-					if (isCTRLDown){
-							if (isALTDown){
-								// CTRL + ALT + MM does nothing at the moment		
-							} else {
-								// CTRL + MM does nothing at the moment	
-							}
-					} else {
-						middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
 
-						if(MiddleButtonSelectorType == 0 && middleButtonNoteTarget > 1) {
-							middleButtonNoteTarget = 0;
-						}
+			// Mouse Scroll
+			if (Input.GetAxis("Mouse ScrollWheel") > 0f && !PromtWindowOpen && !helpWindowOpen) // forward
+			{
 
-						if(MiddleButtonSelectorType == 1) {
-							if(middleButtonNoteTarget < 2 || middleButtonNoteTarget > 3) {
-								middleButtonNoteTarget = 2;
-							}						
-						}
+				if (IsPlaying) {
+					TogglePlay();
 
-						if(MiddleButtonSelectorType == 2 && middleButtonNoteTarget > 3) {
-							middleButtonNoteTarget = 0;
-						}
+					if(!isCTRLDown && !isALTDown) {
+						MoveCamera(true, GetNextStepPoint(true));
+						DrawTrackXSLines();
+					} else if(isCTRLDown) {
+						ChangeStepMeasure(true);
+					}
+
+					TogglePlay();
+
+				//Song is paused
+				} else {
+
+					if(!isCTRLDown && !isALTDown) {
+						MoveCamera(true, GetNextStepPoint(true));
+						DrawTrackXSLines();
+						PlayStepPreview();
+					} else if(isCTRLDown) {
+						ChangeStepMeasure(true);
+					}
+				}                			
+			}
+			else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen && !helpWindowOpen) // backwards
+			{
+				if (IsPlaying) {
+					TogglePlay();
+
+					if(!isCTRLDown && !isALTDown) {
+						MoveCamera(true, GetPrevStepPoint(true));
+						DrawTrackXSLines();
 						
-						/* if(middleButtonNoteTarget > 3) {
-							middleButtonNoteTarget = 0;						
-						} */
-
-						SetNoteMarkerType(middleButtonNoteTarget);
-						markerWasUpdated = true;
+					} else if(isCTRLDown) {
+						ChangeStepMeasure(true);
 					}
-                }
-            }
 
-            // Number keys actions
-            // Input.GetKeyDown(KeyCode.Alpha1) || Input.GetKeyDown(KeyCode.Keypad1)
-            if(Input.GetButtonDown("Left Hand Note")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(SLIDE_LEFT_TAG);
-                    } else {
-                        SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.LeftHanded));
-                        markerWasUpdated = true;
-                    }
-                }				
-            }
+					TogglePlay();
 
-            // Input.GetKeyDown(KeyCode.Alpha2) || Input.GetKeyDown(KeyCode.Keypad2)
-            if(Input.GetButtonDown("Right Hand Note")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(SLIDE_RIGHT_TAG);
-                    } else {
-                        SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.RightHanded));
-                        markerWasUpdated = true;
-                    }
-                }
-            }
+				} else {
 
-            // Input.GetKeyDown(KeyCode.Alpha3) || Input.GetKeyDown(KeyCode.Keypad3)
-            if(Input.GetButtonDown("One Hand Special")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(SLIDE_CENTER_TAG);
-                    } else {
-                        SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.OneHandSpecial));
-                        markerWasUpdated = true;
-                    }
-                }
-            }
-
-            // Input.GetKeyDown(KeyCode.Alpha4) || Input.GetKeyDown(KeyCode.Keypad4)
-            if(Input.GetButtonDown("Both Hands Special")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(SLIDE_LEFT_DIAG_TAG);
-                    } else {
-                        SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.BothHandsSpecial));
-                        markerWasUpdated = true;
-                    }	
-                }			
-            }
-
-            /* if (Input.GetKeyDown(KeyCode.A) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
-                ChangeStepMeasure(false);
-            }
-            else if (Input.GetKeyDown(KeyCode.D) && SelectedCamera == m_FrontViewCamera && !isKeyboardAddNoteDown) {
-                ChangeStepMeasure(true);
-            } */
-
-            // Input.GetKeyDown(KeyCode.Alpha5) || Input.GetKeyDown(KeyCode.Keypad5)
-            if(Input.GetButtonDown("Center Camera")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(SLIDE_RIGHT_DIAG_TAG);
-                    } else {
-                        SwitchRenderCamera(0);
-                    }
-                }
-            }
-
-            // Input.GetKeyDown(KeyCode.Alpha6) || Input.GetKeyDown(KeyCode.Keypad6)
-            if(Input.GetButtonDown("Left Camera")) {
-                if(!PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        ToggleMovementSectionToChart(CROUCH_TAG);
-                    } else {
-                        SwitchRenderCamera(1);
-                    }
-                }
-            }
-
-            // Input.GetKeyDown(KeyCode.Alpha7) || Input.GetKeyDown(KeyCode.Keypad7)
-            if(Input.GetButtonDown("Right Camera")) {
-                if(!PromtWindowOpen) {
-                    SwitchRenderCamera(2);					
-                }
-            }
-
-            // (Input.GetKeyDown(KeyCode.Alpha8) || Input.GetKeyDown(KeyCode.Keypad8))
-            if( Input.GetButtonDown("Free View Camera") && !isALTDown ) {
-                if(!PromtWindowOpen) {
-                    SwitchRenderCamera(3);
-                }
-            }
-
-            // (Input.GetKeyDown(KeyCode.Alpha9) || Input.GetKeyDown(KeyCode.Keypad9))
-            if( Input.GetButtonDown("Bookmarks") ) {
-                if(isCTRLDown){
-                    if(isALTDown) {
-                        ToggleLightsToChart();
-                    } else {
-                        ToggleEffectToChart();
-                    }					
-                } else {
-                    if(currentPromt == PromtType.AddBookmarkAction) {
-                        if(!m_BookmarkInput.isFocused) {
-                            ClosePromtWindow();
-                        }							
-                    } else {
-                        ToggleBookmarkToChart();
-                    }					
-                }				
-            }
-
-            // Input.GetKeyDown(KeyCode.G) 
-            // Toggle Grid Guide
-            if(Input.GetButtonDown("Guide Grid") && !PromtWindowOpen) {
-                if(isCTRLDown) {
-                    SwitchGruidGuideType();
-                } else {
-                    ToggleGridGuide();
-                }                				
-            }	
-
-            if(Input.GetButtonDown("Bookmark Jump") && !PromtWindowOpen) {
-                if(isCTRLDown) {
-                    ToggleBookmarkJump();
-                } else {
-                    if(currentPromt == PromtType.AddBookmarkAction) {
-                        if(!m_BookmarkInput.isFocused) {
-                            ClosePromtWindow();
-                        }							
-                    } else {
-                        ToggleBookmarkToChart();
-                    }					
-                }                 
-            }		
-
-            // Toggle Metronome
-            // Input.GetKeyDown(KeyCode.M) Metronome
-            if(Input.GetButtonDown("Metronome") && !PromtWindowOpen) {
-                ToggleMetronome();
-            }
-            
-
-            // Mouse Scroll
-            if (Input.GetAxis("Mouse ScrollWheel") > 0f && !PromtWindowOpen) // forward
-            {
-
-                if (IsPlaying) {
-                    TogglePlay();
-
-                    if(!isCTRLDown && !isALTDown) {
-                        MoveCamera(true, GetNextStepPoint(true));
-                        DrawTrackXSLines();
-                    } else if(isCTRLDown) {
-                        ChangeStepMeasure(true);
-                    }
-
-                    TogglePlay();
-
-                //Song is paused
-                } else {
-
-                    if(!isCTRLDown && !isALTDown) {
-                        MoveCamera(true, GetNextStepPoint(true));
-                        DrawTrackXSLines();
-                        PlayStepPreview();
-                    } else if(isCTRLDown) {
-                        ChangeStepMeasure(true);
-                    }
-                }                			
-            }
-            else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen) // backwards
-            {
-                if (IsPlaying) {
-                    TogglePlay();
-
-                    if(!isCTRLDown && !isALTDown) {
-                        MoveCamera(true, GetPrevStepPoint(true));
-                        DrawTrackXSLines();
-                        
-                    } else if(isCTRLDown) {
-                        ChangeStepMeasure(true);
-                    }
-
-                    TogglePlay();
-
-                } else {
-
-                    if(!isCTRLDown && !isALTDown) {
-                        MoveCamera(true, GetPrevStepPoint(true));
-                        DrawTrackXSLines();
-                        PlayStepPreview();
-                    } else if(isCTRLDown){
-                        ChangeStepMeasure(false);
-                    }
-                }
-            }
-
-            // Volume control
-            // (Input.GetKey(KeyCode.Plus) || Input.GetKey(KeyCode.KeypadPlus)
-            if( Input.GetAxis("Volume") > 0 
-                && keyHoldTime > nextKeyHold && !PromtWindowOpen ){
-
-                nextKeyHold = keyHoldTime + keyHoldDelta;
-
-                if(isCTRLDown) {
-                    m_SFXVolumeSlider.value += 0.1f;
-                } else if(isALTDown) {
-                    gridManager.ChangeGridSize();
-                } else {
-                    m_VolumeSlider.value += 0.1f;
-                }
-                
-                nextKeyHold = nextKeyHold - keyHoldTime;
-                keyHoldTime = 0.0f;				
-            }
-
-            // (Input.GetKey(KeyCode.Minus) || Input.GetKey(KeyCode.KeypadMinus)
-            if( Input.GetAxis("Volume") < 0 
-                && keyHoldTime > nextKeyHold && !PromtWindowOpen ){
-                
-                nextKeyHold = keyHoldTime + keyHoldDelta;
-            
-                if(isCTRLDown) {
-                    m_SFXVolumeSlider.value -= 0.1f;
-                } else if(isALTDown) {
-                    gridManager.ChangeGridSize(false);
-                } else {
-                    m_VolumeSlider.value -= 0.1f;
-                }
-
-                nextKeyHold = nextKeyHold - keyHoldTime;
-                keyHoldTime = 0.0f;		
-            }
-
-            // Copy and Paste actions
-            if(Input.GetKeyDown(KeyCode.C)) {
-                if(isCTRLDown && !IsPlaying && !PromtWindowOpen) {
-                    CloseSpecialSection();
-                    FinalizeLongNoteMode();
-                    CopyAction();
-
-                    /* if(TotalNotes > 0) {
-                        DoCopyCurrentDifficulty();
-                    } else {
-                        Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_NotNotesToCopy);
-                    } */
-                    
-                } 
-            }
-
-            if(Input.GetKeyDown(KeyCode.V)) {
-                if(!IsPlaying && !PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        CloseSpecialSection();
-                        FinalizeLongNoteMode();
-                        PasteAction();
-                    } else if(isALTDown) {
-                        CloseSpecialSection();
-                        FinalizeLongNoteMode();
-                        PasteAction(true);
-                    }
-                    
-                } 
-            }
-			
-			// Undo
-			if(Input.GetKeyDown(KeyCode.Z)) {
-                if(!IsPlaying && !PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        CloseSpecialSection();
-                        FinalizeLongNoteMode();
-                        undo();
-                    }
-                } 
-            }
-			
-			// Redo
-			if(Input.GetKeyDown(KeyCode.Y)) {
-                if(!IsPlaying && !PromtWindowOpen) {
-                    if(isCTRLDown) {
-                        CloseSpecialSection();
-                        FinalizeLongNoteMode();
-                        redo();
-                    }
-                } 
-            }
-			
-			// Flip selected notes
-			if(Input.GetButtonDown("Flip") && !IsPlaying && !PromtWindowOpen) {
-				CloseSpecialSection();
-				FinalizeLongNoteMode();
-				FlipAction();
+					if(!isCTRLDown && !isALTDown) {
+						MoveCamera(true, GetPrevStepPoint(true));
+						DrawTrackXSLines();
+						PlayStepPreview();
+					} else if(isCTRLDown){
+						ChangeStepMeasure(false);
+					}
+				}
 			}
 
-            // Toggle Stats Window
-            if((Input.GetKeyDown(KeyCode.Alpha0) || Input.GetKeyDown(KeyCode.Keypad0)) && !PromtWindowOpen) {
-                ToggleStatsWindow();
-            }
-
-            // Toggle Help Window
-            if(Input.GetKeyDown(KeyCode.F1)) {
-                ToggleHelpWindow();
-            }
-
-            // Toggle LongNote Mode
-            // Input.GetKeyDown(KeyCode.L)
-            if( Input.GetButtonDown("Long Line Mode") && !isPlaying && !PromtWindowOpen) {
-                ToggleLineMode();
-            }
-
-            // Jumpt to Time
-            // Input.GetKeyDown(KeyCode.F)
-            /* if(Input.GetButtonDown("Jump to Time") && !IsPlaying && !PromtWindowOpen) {
-                CloseSpecialSection();
-                FinalizeLongNoteMode();
-                DoJumpToTimeAction();
-            } */
-
-            if(Input.GetKeyDown(KeyCode.F12) && !PromtWindowOpen && !IsPlaying) {
-                if(isCTRLDown) {
-                    ToggleAdminMode();
-                } else {
-                    m_FullStatsContainer.SetActive(!m_FullStatsContainer.activeInHierarchy);
-                    if(m_FullStatsContainer.activeInHierarchy) {
-                        GetCurrentStats();
-                    }                    
-                }                			
-            }
-
-            if(Input.GetKeyDown(KeyCode.F11) && !PromtWindowOpen && !IsPlaying) {
-                // ToggleSynthMode();
-                DoCustomDiffEdit();			
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F10) && !PromtWindowOpen && !isPlaying) {
-                if(!isCTRLDown) {
-                    TagController.InitContainer();
-                    DoTagEdit();
-                } else {
-                    ToggleLatencyWindow();
-                }				
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F9)) {
-                if(!isCTRLDown) {
-                    ToggleScrollSound();
-                } else {
-                    ToggleVsycn();
-                }							
-            }
-
-            if(Input.GetKeyDown(KeyCode.F8) && !PromtWindowOpen && !isPlaying) {
-                DoClearBookmarks();				
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F7)) {
-                ToggleAudioSpectrum();				
-            }
-
-            if(Input.GetKeyDown(KeyCode.F6) && !PromtWindowOpen && !isPlaying) {
-                DoMouseSentitivity();				
-            }		
-
-            if(Input.GetKeyDown(KeyCode.F5) && !PromtWindowOpen && !isPlaying) {
-                UpdateMiddleButtonSelector();		
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F4) && !PromtWindowOpen && !isPlaying) {
-                UpdateAutoSaveAction();		
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F3) && !PromtWindowOpen && !isPlaying) {
-                if(!isCTRLDown) {
-                    ToggleMirrorMode();	
-                } else {
-                    ToggleGripSnapping();
-                }
-                    
-            }	
-
-            if(Input.GetKeyDown(KeyCode.F2) && !PromtWindowOpen && !isPlaying) {
-                ExportToJSON();	
-            }		
-
-            if( Input.GetButtonDown("Mirrored inverse Y") && isOnMirrorMode) { 
-                YAxisInverse = !YAxisInverse;
-            }            
-
-            if(Input.GetButtonDown("Select All") && isCTRLDown) {
-                if(!isPlaying && !isOnLongNoteMode && !PromtWindowOpen) {
-                    SelectAll();
-                }
-            }
-
-            if(Input.GetKeyDown(KeyCode.P)) {
-                HighlightNotes();
-            }
-
-            if(isSHIFDown) {
-                CurrentSelection.endTime = CurrentTime;
-                UpdateSelectionMarker();
-            }
-
-            // Directional Notes
-
-            if(isSHIFDown && !promtWindowOpen && !isPlaying && !isOnLongNoteMode) {
-                if(Input.GetKeyDown(KeyCode.D)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.Right);
-                } else if(Input.GetKeyDown(KeyCode.C)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.RightBottom);
-                } else if(Input.GetKeyDown(KeyCode.X)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.Bottom);
-                } else if(Input.GetKeyDown(KeyCode.Z) && !isCTRLDown) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.LeftBottom);
-                } else if(Input.GetKeyDown(KeyCode.A)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.Left);
-                } else if(Input.GetKeyDown(KeyCode.Q)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.LeftTop);
-                } else if(Input.GetKeyDown(KeyCode.W)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.Top);
-                } else if(Input.GetKeyDown(KeyCode.E)) {
-                    ToggleNoteDirectionMarker(Note.NoteDirection.RightTop);
-                }
-            }
-
-            if(Input.GetKeyDown(KeyCode.Tab)) {
-                if(!promtWindowOpen && !isPlaying) {
-                    if(isCTRLDown) {
-                        ToggleSideBars();
-                    } else {
-                        ToggleStepType();
-                    }
-                }                
-            }
-
-            if(Input.GetKeyDown(KeyCode.RightBracket) || Input.GetKeyDown(KeyCode.PageUp)) {
-                if(!PromtWindowOpen) {
-                    if(!isPlaying) {
-                        JumpToMeasure(GetNextBookamrk());
-                    }		
-                }
-            }
-
-            if(Input.GetKeyDown(KeyCode.LeftBracket) || Input.GetKeyDown(KeyCode.PageDown)) {
-                if(!PromtWindowOpen) {
-                    if(!isPlaying) {
-                        JumpToMeasure(GetPrevBookamrk());
-                    }		
-                }
-            }
-
-            if(Input.GetKeyDown(KeyCode.Q)) {
-                showLastPlaceNoted = !showLastPlaceNoted;
-                if(!showLastPlaceNoted) {
-                    notesArea.HideHistoryCircle();
-                } else {
-                    ShowLastNoteShadow();
-                }
-            }
-			
-			if(Input.GetButtonDown("ToggleStepSaver") && !isSHIFDown && !isALTDown && !isCTRLDown && !PromtWindowOpen) {
-				ToggleStepMeasureSettings();
+			if(Input.GetKeyDown(KeyCode.F12) && !PromtWindowOpen && !IsPlaying) {
+				if(isCTRLDown) {
+					ToggleAdminMode();
+				}             			
 			}
 
+			if(Controller.controller.IsKeyBindingPressed("ToggleSelectionAreaAction")) {
+				CurrentSelection.endTime = CurrentTime;
+				UpdateSelectionMarker();
+			}
 
-            /* if(Input.GetKeyDown(KeyCode.N)) {
-                TryAdddNoteToGridCenter();
-            } */
-
-            if(!isALTDown && !promtWindowOpen) {
-                notesArea.IsOnKeyboardEditMode = isKeyboardAddNoteDown;
-                if(isKeyboardAddNoteDown) {
-                    notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
-                }
-            } 
+			if(!isALTDown && !promtWindowOpen && !helpWindowOpen) {
+				notesArea.IsOnKeyboardEditMode = isKeyboardAddNoteDown;
+				if(isKeyboardAddNoteDown) {
+					notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
+				}
+			} 
             
 #endregion
 
@@ -1836,6 +1226,7 @@ namespace MiKu.NET {
                 && canAutoSave
                 && !isOnLongNoteMode 
                 && !PromtWindowOpen
+				&& !helpWindowOpen
                 && !isPlaying) {
                 SaveChartAction();
             }
@@ -1848,8 +1239,581 @@ namespace MiKu.NET {
             }
 
         }
+		
+#region Keybound Actions
 
-        private void ToggleStepType(bool displayOnly = false)
+		// Keybound actions called primarily from Controller.cs
+		
+		public void AddNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(NotesArea.SelectedNote != null) notesArea.AddNoteOnClick();
+		}
+		
+		public void DragSnapObjectAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// Performs these actions in the listed priority:
+			// 1. Starts note drag if the note is already on the cursor position
+			// 2. Starts wall drag if the wall is already on the cursor position
+			// 3. Moves the clicked note to the current cursor position
+			// 4. Moves the clicked wall to the current cursor position
+			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+			EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
+			if (_clickedNote != null && _clickedNote.noteGO != null){
+				if (Mathf.Abs(FindClosestNoteOrSegmentBeat(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z))-CurrentSelectedMeasure)<MEASURE_CHECK_TOLERANCE) noteDragger.StartNewDrag();
+				else {
+					if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure)) wallDragger.StartNewDrag();
+					else TryMoveNote(CurrentSelectedMeasure, _clickedNote);
+				}
+			} else if (_editorWall != null && _editorWall.exists && _editorWall.wallGO){ 
+				if (FindClosestSlideBeat(_editorWall.time)==CurrentSelectedMeasure || FindClosestCrouchBeat(_editorWall.time)==CurrentSelectedMeasure) wallDragger.StartNewDrag();
+				else TryMoveWall(GetBeatMeasureByUnit(wallDragger.getWallUnderMousePosition().z));
+			}
+		}
+		
+		public void SnapGridToObjectAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// Moves cursor to clicked note or wall position
+			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+			EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
+			if(_clickedNote != null && _clickedNote.noteGO != null) {
+				if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) JumpToMeasure(_editorWall.time);
+				else JumpToMeasure(RoundToThird(GetBeatMeasureByUnit(_clickedNote.noteGO.transform.position.z)));
+			} else if (_editorWall != null && _editorWall.exists) JumpToMeasure(_editorWall.time);
+		}
+		
+		public void RemoteDeleteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// Deletes clicked note or wall
+			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+			EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
+			if (_clickedNote != null && _clickedNote.noteGO != null){
+				if (_editorWall != null && _editorWall.exists && _editorWall.wallGO != null && _editorWall.time<_clickedNote.time) {
+				float currentMeasureBackup = currentSelectedMeasure;
+				CurrentSelectedMeasure = _editorWall.time;
+				ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
+				CurrentSelectedMeasure = currentMeasureBackup;
+			}
+				else {
+					railEditor.RemoveNodeFromActiveRail();
+					DeleteIndividualNote(_clickedNote);	
+				}
+			} else if (_editorWall != null && _editorWall.exists) {
+				float currentMeasureBackup = currentSelectedMeasure;
+				CurrentSelectedMeasure = _editorWall.time;
+				ToggleMovementSectionToChart(_editorWall.isCrouch ? CROUCH_TAG : GetSlideTagByType(_editorWall.slide.slideType), _editorWall.getPosition());
+				CurrentSelectedMeasure = currentMeasureBackup;
+			}
+		}
+		
+		public void TogglePlayAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+            TogglePlay();
+		}
+		
+		public void TogglePlayReturnAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			TogglePlay(true);
+		}
+		
+		public void SelectLeftHandNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.LeftHanded));
+			markerWasUpdated = true;
+		}
+		
+		public void SelectRightHandNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.RightHanded));
+			markerWasUpdated = true;
+		}
+		
+		public void SelectOneHandSpecialNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.OneHandSpecial));
+			markerWasUpdated = true;
+		}
+		
+		public void SelectTwoHandSpecialNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.BothHandsSpecial));
+			markerWasUpdated = true;
+		}
+		
+		public void AddNodeToExistingRailAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if (NotesArea.SelectedNote != null) {
+                railEditor.AddNodeToActiveRail(NotesArea.SelectedNote);
+            } else Debug.Log("selectedNote not found!");
+		}
+		
+		public void ToggleLongNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleLineMode();
+		}
+		
+		public void ToggleBookmarkAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleBookmarkToChart();
+		}
+		
+		public void ToggleFlashAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleEffectToChart();
+		}
+		
+		public void ToggleLeftSideWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(SLIDE_LEFT_TAG);
+		}
+		
+		public void ToggleRightSideWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(SLIDE_RIGHT_TAG);
+		}
+		
+		public void ToggleCenterWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(SLIDE_CENTER_TAG);
+		}
+		
+		public void ToggleLeftDiagonalWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(SLIDE_LEFT_DIAG_TAG);
+		}
+		
+		public void ToggleRightDiagonalWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(SLIDE_RIGHT_DIAG_TAG);
+		}
+		
+		public void ToggleCrouchWallAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMovementSectionToChart(CROUCH_TAG);
+		}
+		
+		public void ToggleSelectionAreaAction(){
+			if(isOnLongNoteMode || PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleSelectionArea();
+		}
+		
+		public void SelectAllAction(){
+			if(PromtWindowOpen || helpWindowOpen || isOnLongNoteMode || IsPlaying) return;
+			SelectAll();
+		}
+		
+		public void DeleteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			DeleteNotesAtTheCurrentTime();
+			UpdateSegmentsList();
+		}
+		
+		public void DeleteAllObjectsAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			DoClearNotePositions();
+		}
+		
+		public void ChangeNoteColorAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+			if(_clickedNote != null && _clickedNote.noteGO != null) {
+				TryChangeColorSelectedNote(_clickedNote.noteGO.transform.position);
+			}
+		}
+		
+		public void AddMirrorNoteAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
+			if(_clickedNote != null && _clickedNote.noteGO != null) {
+				TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
+			}
+		}
+				
+		public void FlipAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			FlipSelected();
+		}
+		
+		public void CopyKeyAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			CopyAction();
+		}
+		
+		public void PasteKeyAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			PasteAction();
+		}
+		
+		public void PasteMirrorKeyAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			PasteAction(true);
+		}
+		
+		public void UndoAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			Undo();
+		}
+		
+		public void RedoAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			Redo();
+		}
+		
+		public void AddNoteWhilePlayingAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			isKeyboardAddNoteDown = true;
+			if(isPlaying) {
+				TryAdddNoteToGridCenter();
+			}
+		}
+		
+		public void CycleNoteTypeAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
+			if(MiddleButtonSelectorType == 0 && middleButtonNoteTarget > 1) {
+				middleButtonNoteTarget = 0;
+			}
+			if(MiddleButtonSelectorType == 1) {
+				if(middleButtonNoteTarget < 2 || middleButtonNoteTarget > 3) {
+					middleButtonNoteTarget = 2;
+				}						
+			}
+			if(MiddleButtonSelectorType == 2 && middleButtonNoteTarget > 3) {
+				middleButtonNoteTarget = 0;
+			}
+			SetNoteMarkerType(middleButtonNoteTarget);
+			markerWasUpdated = true;
+		}
+		
+		public void CycleMiddleMouseButtonAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			UpdateMiddleButtonSelector();
+		}
+		
+		public void ClearAllBookmarksAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			DoClearBookmarks();
+		}
+		
+		public void CycleStepSelectorTypeAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleStepType();
+		}
+		
+		public void ToggleMirrorModeAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMirrorMode();	
+		}
+		
+		public void ToggleInverseYAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			YAxisInverse = !YAxisInverse;
+		}
+		
+		public void ToggleSnapToGridAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleGripSnapping();
+		}
+		
+		public void SaveKeyAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			DoSaveAction();
+		}
+		
+		public void MoveBackwardOnTimelineAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See Update();
+		}
+		
+		public void MoveForwardOnTimelineAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See Update();
+		}
+		
+		public void JumpToNextBookmarkAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			JumpToMeasure(GetNextBookamrk());
+		}
+		
+		public void JumpToPreviousBookmarkAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			JumpToMeasure(GetPrevBookamrk());
+		}
+		
+		public void TimelineStartAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			ReturnToStartTime();
+			DrawTrackXSLines();
+		}
+		
+		public void TimelineEndAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			GoToEndTime();
+			DrawTrackXSLines();
+		}
+		
+		public void AdjustBeatStepMeasureDownAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See Update();
+		}
+		
+		public void AdjustBeatStepMeasureUpAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See Update();
+		}
+		
+		public void AdjustPlaybackSpeedMeasureDownAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See Update();
+		}
+		
+		public void AdjustPlaybackSpeedMeasureUpAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			// See Update();
+		}
+		
+		public void AdjustMusicVolumeDownAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			m_VolumeSlider.value -= 0.1f;
+		}
+		
+		public void AdjustMusicVolumeUpAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			m_VolumeSlider.value += 0.1f;
+		}
+		
+		public void AdjustSFXVolumeDownAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			m_SFXVolumeSlider.value -= 0.1f;
+		}
+		
+		public void AdjustSFXVolumeUpAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			m_SFXVolumeSlider.value += 0.1f;
+		}
+		
+		public void AdjustGridSizeDownAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			gridManager.ChangeGridSize(false);
+		}
+		
+		public void AdjustGridSizeUpAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			gridManager.ChangeGridSize();
+		}
+		
+		public void ToggleGridGuideAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleGridGuide();
+		}
+		
+		public void SwitchGridGuideAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			SwitchGruidGuideType();
+		}
+		
+		public void ToggleStepSaverAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleStepMeasureSettings();
+		}
+		
+		public void ToggleTimelineScrollSoundAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			ToggleScrollSound();
+		}
+		
+		public void ToggleNoteHighlightAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			HighlightNotes();
+		}
+		
+		public void ToggleSidebarsAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleSideBars();
+		}
+		
+		public void ToggleLastNoteShadowAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			showLastPlaceNoted = !showLastPlaceNoted;
+			if(!showLastPlaceNoted) {
+				notesArea.HideHistoryCircle();
+			} else {
+				ShowLastNoteShadow();
+			}
+		}
+		
+		public void ToggleMetronomeAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleMetronome();
+		}
+		
+		public void ToggleKeyBindingsPanelAction(){
+			if(PromtWindowOpen || IsPlaying) return;
+			ToggleHelpWindow();
+		}
+		
+		public void AcceptPromptAction(){
+			if(helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen) {
+				OnAcceptPromt();
+			}
+		}
+		
+		public void DeclinePromptAction(){
+			if(IsPlaying) return;
+			if(PromtWindowOpen) {
+				ClosePromtWindow();	
+				return;
+			}
+			if(CurrentSelection.endTime > CurrentSelection.startTime) {
+				ClearSelectionMarker();		
+				return;				
+			}
+			DoReturnToMainMenu();					
+		}
+		
+		public void ToggleStatsAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleStatsWindow();
+		}
+		
+		public void ToggleFullStatsAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			m_FullStatsContainer.SetActive(!m_FullStatsContainer.activeInHierarchy);
+			if(m_FullStatsContainer.activeInHierarchy) {
+				GetCurrentStats();
+			} 
+		}
+		
+		public void ToggleBookmarkJumpAction(){
+			if(helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen){
+				if(currentPromt == PromtType.AddBookmarkAction) {
+					if(!m_BookmarkInput.isFocused) {
+						ClosePromtWindow();
+					}							
+				} else return;
+			}
+			ToggleBookmarkJump();
+		}
+		
+		public void ToggleMouseSensitivityPanelAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			DoMouseSentitivity();
+		}
+		
+		public void ToggleAudioSpectrumAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			ToggleAudioSpectrum();
+		}
+		
+		public void ToggleTagEditWindowAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			TagController.InitContainer();
+			DoTagEdit();
+		}
+		
+		public void ToggleLatencyPanelAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ToggleLatencyWindow();
+		}
+		
+		public void EditCustomDifficultyAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			DoCustomDiffEdit();
+		}
+		
+		public void ToggleCenterCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			SwitchRenderCamera(0);
+		}
+		
+		public void ToggleLeftViewCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			SwitchRenderCamera(1);
+		}
+		
+		public void ToggleRightViewCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			SwitchRenderCamera(2);
+		}
+		
+		public void ToggleFreeViewCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			SwitchRenderCamera(3);
+		}
+		
+		public void RotateFreeViewCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			// See MoveCamera.cs
+		}
+		
+		public void ResetFreeViewCameraAction(){
+			if(PromtWindowOpen || helpWindowOpen) return;
+			// See MoveCamera.cs
+		}
+		
+		public void AdjustFreeCameraPanningLeftAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See MoveCamera.cs
+		}
+		
+		public void AdjustFreeCameraPanningRightAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See MoveCamera.cs
+		}
+		
+		public void AdjustFreeCameraPanningUpAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See MoveCamera.cs
+		}
+		
+		public void AdjustFreeCameraPanningDownAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			// See MoveCamera.cs
+		}
+		
+		public void ExportJSONAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			ExportToJSON();	
+		}
+		
+		public void ToggleAutosaveAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			UpdateAutoSaveAction();
+		}
+		
+		public void ToggleVsyncAction(){
+			if(helpWindowOpen) return;
+			ToggleVsycn();
+		}
+		
+#endregion
+		
+		public void ToggleStepType(bool displayOnly = false)
         {
             if(!displayOnly) {
                 if(currentStepType == StepType.Measure) {
@@ -3306,7 +3270,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Flip selected notes horizontally and swap left/right handedness
         /// </summary>
-		public void FlipAction(){
+		public void FlipSelected(){
             isBusy = true;
 			try {
 				// Read and record the original, unflipped pattern
@@ -3427,6 +3391,9 @@ namespace MiKu.NET {
         /// Turn on/off and update the data of the Stats Window
         /// </summary>
         public void ToggleStatsWindow() {
+			/* if(m_FullStatsContainer.activeInHierarchy) {
+                GetCurrentStats();
+            } */
             m_StatsContainer.SetActive(!m_StatsContainer.activeSelf);
         }
 
@@ -3475,10 +3442,14 @@ namespace MiKu.NET {
         public void ToggleHelpWindow() {
             if(helpWindowOpen) {
                 helpWindowOpen = false;
-                m_HelpWindowAnimator.Play("Panel Out");
+				KeyBinder.keyBinder.panelActive = false;
+                //m_HelpWindowAnimator.Play("Panel Out");
+                m_KeyBindingWindowAnimator.Play("Panel Out");
             } else {
                 helpWindowOpen = true;
-                m_HelpWindowAnimator.Play("Panel In");
+				KeyBinder.keyBinder.panelActive = true;
+                //m_HelpWindowAnimatorm_HelpWindowAnimator.Play("Panel In");
+                m_KeyBindingWindowAnimator.Play("Panel In");
             }
         }		
 
@@ -5539,8 +5510,9 @@ namespace MiKu.NET {
             //timeSliderBookmarkGO.transform.rotation =	Quaternion.identity;
             
             timeSliderBookmarkGO.name = s_instance.GetTimeSliderBookmarkIdFormated(ms);
-			timeSliderBookmarkGO.GetComponentInChildren<Text>().text = ms.ToString();
+			timeSliderBookmarkGO.transform.Find("TimeHolder").GetComponentInChildren<Text>().text = ms.ToString();
 			timeSliderBookmarkGO.GetComponent<Button>().onClick.AddListener(delegate {TimeSliderBookmarkClick(GetTimeByMeasure(ms)); });
+			timeSliderBookmarkGO.transform.Find("Fading Tool Tip").GetComponentInChildren<Text>().text = name;
             return timeSliderBookmarkGO;
         }
 
@@ -6894,7 +6866,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Undo the most recent event added to the history
         /// </summary>
-		public static void undo(){
+		public static void Undo(){
 			if(PromtWindowOpen || IsPlaying) return;
 			s_instance.isBusy = true;
 			if (s_instance.history.hasHistoryToUndo()){
@@ -6995,7 +6967,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Redo the most recent event undone
         /// </summary>
-		public static void redo(){
+		public static void Redo(){
 			if(PromtWindowOpen || IsPlaying) return;
 			s_instance.isBusy = true;
 			if (s_instance.history.hasHistoryToRedo()){
@@ -9632,6 +9604,19 @@ namespace MiKu.NET {
             set
             {
                 s_instance.promtWindowOpen = value;
+            }
+        }
+		
+		public static bool HelpWindowOpen
+        {
+            get
+            {
+                return s_instance.helpWindowOpen;
+            }
+
+            set
+            {
+                s_instance.helpWindowOpen = value;
             }
         }
 

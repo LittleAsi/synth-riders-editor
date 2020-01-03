@@ -48,6 +48,7 @@ public class MoveCamera : MonoBehaviour
 		if(hasFocus) {
 			isCTRLDown = false;
 			isSHIFTDown = false;
+			isRotating = false;
 		} 
 	}
 	
@@ -55,7 +56,7 @@ public class MoveCamera : MonoBehaviour
 	{
 		if(!gameObject.activeSelf || !gameObject.activeInHierarchy) return;
 
-        if(Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt) 
+        /* if(Input.GetKeyDown(KeyCode.LeftAlt) || Input.GetKeyDown(KeyCode.RightAlt) 
 			|| Input.GetKeyDown(KeyCode.RightControl) || Input.GetKeyDown(KeyCode.LeftControl))
         {
             isCTRLDown = true;
@@ -72,16 +73,20 @@ public class MoveCamera : MonoBehaviour
 
 		if(Input.GetKeyUp(KeyCode.LeftShift) || Input.GetKeyUp(KeyCode.RightShift)) {
 			isSHIFTDown = false;
-		}
+		} */
+		
+		isCTRLDown = Controller.controller.isMod1Down;
+		isSHIFTDown = Controller.controller.isMod3Down;
 
-        if( (Input.GetKeyDown(KeyCode.Alpha8) || Input.GetKeyDown(KeyCode.Keypad8)) && isCTRLDown ) {
+        //if( (Input.GetKeyDown(KeyCode.Alpha8) || Input.GetKeyDown(KeyCode.Keypad8)) && isCTRLDown ) {
+        if(Controller.controller.GetKeyDown("ResetFreeViewCameraAction")) {
             ResetCamera();
             Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, "Camera position was reset");
         }
 
 		// Get the right mouse button
-		if(Input.GetMouseButtonDown(1))
-		{
+		//if(Input.GetMouseButtonDown(1))
+		if(Controller.controller.GetKeyDown("RotateFreeViewCameraAction")) {
 			// Get mouse origin
 			mouseOrigin = Input.mousePosition;
             isRotating = true;
@@ -95,10 +100,19 @@ public class MoveCamera : MonoBehaviour
             isPanning = true;            
 		} */
 
-		float horizontalPanning = Input.GetAxis("Horizontal Free Camera");
-		float verticalPanning = Input.GetAxis("Vertical Free Camera");
+		float horizontalPanning = 0;
+		float verticalPanning = 0;
+		
+		if(horizontalPanning==0){
+			if(Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningLeftAction")) horizontalPanning = -1;
+			else if(Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningRightAction")) horizontalPanning = 1;
+		}
+		if(verticalPanning==0){
+			if(Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningDownAction")) verticalPanning = -1;
+			else if(Controller.controller.IsKeyBindingPressed("AdjustFreeCameraPanningUpAction")) verticalPanning = 1;
+		}
 
-		if( (horizontalPanning != 0 || verticalPanning !=0) && !Track.PromtWindowOpen && !isCTRLDown && !isSHIFTDown) {
+		if( (horizontalPanning != 0 || verticalPanning !=0) && !Track.PromtWindowOpen && !Track.HelpWindowOpen && !isCTRLDown && !isSHIFTDown) {
 			isPanning = true;		
 		} else {
 			isPanning = false;
@@ -114,7 +128,8 @@ public class MoveCamera : MonoBehaviour
 		} */
 		
 		// Disable movements on button release
-		if (!Input.GetMouseButton(1)) { isRotating = false; }
+		//if (!Input.GetMouseButton(1)) { isRotating = false; }
+		if(Controller.controller.GetKeyUp("RotateFreeViewCameraAction")) { isRotating = false; }
 		//if (!Input.GetMouseButton(0)) { isPanning = false; }
 		
 		// Rotate camera along X and Y axis

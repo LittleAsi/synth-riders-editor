@@ -136,7 +136,7 @@ namespace MiKu.NET {
 
             m_boundBox.SetActive(false);
         }
-
+		
         public void EnabledSelectedNote() {
             if(selectedNote == null) {
                 selectedNote = Track.GetSelectedNoteMarker();
@@ -179,7 +179,11 @@ namespace MiKu.NET {
 
         void Update()
         {
-            if(Input.GetButtonDown("Input Modifier1"))
+			isCTRLDown = Controller.controller.isMod1Down;
+			isALTDown = Controller.controller.isMod2Down;
+			isSHIFDown = Controller.controller.isMod3Down;
+			
+            /* if(Input.GetButtonDown("Input Modifier1"))
             {
                 isCTRLDown = true;
             }
@@ -206,28 +210,30 @@ namespace MiKu.NET {
             // Input.GetKeyUp(KeyCode.LeftAlt)
             if(Input.GetButtonUp("Input Modifier3")) {
                 isSHIFDown = false;
-            }
+            } */
 			//Test if we're adding to a rail.
-            if (RailEditor.activated && Input.GetMouseButtonDown(0) && selectedNote != null) {
-                railEditor.AddNodeToActiveRail(selectedNote);
-            }
+            // Moved to Track.cs
+			//if (RailEditor.activated && Input.GetMouseButtonDown(0) && selectedNote != null) {
+            //    railEditor.AddNodeToActiveRail(selectedNote);
+            //}
 
-            if (RailEditor.activated && Input.GetMouseButtonDown(1)) {
-                railEditor.RemoveNodeFromActiveRail();
-            }
+			// Moved to Track.cs
+            //if (RailEditor.activated && Input.GetMouseButtonDown(1)) {
+                //railEditor.RemoveNodeFromActiveRail();
+            //}
             
-            if (Input.GetMouseButtonDown(0) && selectedNote != null) {
+			//Moved to Track.cs
+            /* if (Input.GetMouseButtonDown(0) && selectedNote != null) {
                 if(!isALTDown && !isCTRLDown && !isSHIFDown) {                    
                     AddNoteOnClick();
                 } else {
                     if(isCTRLDown && isALTDown && !isSHIFDown) {
-						//Moved to Track.cs
-                        //Track.TryMirrorSelectedNote(selectedNote.transform.position);
+                        Track.TryMirrorSelectedNote(selectedNote.transform.position);
                     } else if(isSHIFDown && !isALTDown && !isCTRLDown) { 
                         Track.TryChangeColorSelectedNote(selectedNote.transform.position);
                     }
                 }               			
-            }
+            } */
         }
 
         void FixedUpdate() {	
@@ -363,6 +369,11 @@ namespace MiKu.NET {
             return s_instance.m_intenseColor;
         }
 #endregion
-        
+        public static GameObject SelectedNote{
+			get
+			{
+				return s_instance.selectedNote;
+			}
+		}
     }
 }
