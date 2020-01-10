@@ -331,6 +331,9 @@ public class KeyBinder : MonoBehaviour {
 		keybindComposite.transform.parent = m_KeybindPanelContent.transform;
 		Transform primaryButton = keybindComposite.transform.Find("PrimaryButton");
 		Transform secondaryButton = keybindComposite.transform.Find("SecondaryButton");
+		//Toggle cheatsheetToggle = keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
+		//cheatsheetToggle.enabled = false;
+		keybindComposite.transform.Find("Toggle").gameObject.SetActive(false);
 		keybindComposite.transform.Find("Description").GetComponentInChildren<Text>().text = _description;
 		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
 		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
@@ -353,11 +356,12 @@ public class KeyBinder : MonoBehaviour {
 		modComposites[_modifierNumber-1] = keybindComposite;
 	}
 	
-	public GameObject CreateKeyBindingComposite(string _actionMethodName, string _description, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary){
+	public GameObject CreateKeyBindingComposite(string _actionMethodName, string _description, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary, bool _includeInCheatsheet){
 		GameObject keybindComposite = GameObject.Instantiate(m_KeybindComposite);
 		keybindComposite.transform.parent = m_KeybindPanelContent.transform;
 		Transform primaryButton = keybindComposite.transform.Find("PrimaryButton");
 		Transform secondaryButton = keybindComposite.transform.Find("SecondaryButton");
+		Toggle cheatsheetToggle = keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
 		keybindComposite.transform.Find("Description").GetComponentInChildren<Text>().text = _description;
 		keyTexts.Add(primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>());
 		keyTexts.Add(primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>());
@@ -415,14 +419,21 @@ public class KeyBinder : MonoBehaviour {
 		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
 		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
 		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
+		cheatsheetToggle.isOn = _includeInCheatsheet;
 		primaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetKeyBinding(0, _actionMethodName, primaryButton); });
 		secondaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetKeyBinding(1, _actionMethodName, secondaryButton); }); 
+		cheatsheetToggle.GetComponentInChildren<Toggle>().onValueChanged.AddListener(delegate {BeginToggleCheatsheetInclusion(_actionMethodName, cheatsheetToggle); }); 
 		return keybindComposite;
 	}
 	
-	public void RefreshKeybindComposite(GameObject _keybindComposite, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary){
+	public void BeginToggleCheatsheetInclusion(string _actionMethodName, Toggle _cheatsheetToggle){
+		Controller.controller.ToggleCheatsheetInclusion(_actionMethodName, _cheatsheetToggle.isOn);
+	}
+	
+	public void RefreshKeybindComposite(GameObject _keybindComposite, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary, bool _includeInCheatsheet){
 		Transform primaryButton = _keybindComposite.transform.Find("PrimaryButton");
 		Transform secondaryButton = _keybindComposite.transform.Find("SecondaryButton");
+		Toggle cheatsheetToggle = _keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
 		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
 		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
 		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
@@ -439,6 +450,7 @@ public class KeyBinder : MonoBehaviour {
 		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
 		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
 		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
+		cheatsheetToggle.isOn = _includeInCheatsheet;
 	}
 	
 	public void RefreshModComposites(){

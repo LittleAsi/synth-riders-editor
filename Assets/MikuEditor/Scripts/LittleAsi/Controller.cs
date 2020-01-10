@@ -236,7 +236,7 @@ public class Controller : MonoBehaviour {
 		KeyBinder.keyBinder.CreateInputModifierComposite(_modifierNumber, "Input Modifier " + _modifierNumber, inputModifiers[_modifierNumber-1, 0].ToString(), inputModifiers[_modifierNumber-1, 1].ToString());
 	}
 	
-	private void CreateKeyBinding(string _actionMethodName, string _description, string _defaultPrimary, bool _defaultMod1Primary, bool _defaultMod2Primary, bool _defaultMod3Primary, string _defaultSecondary, bool _defaultMod1Secondary, bool _defaultMod2Secondary, bool _defaultMod3Secondary, bool _includeInCheatsheet = false){
+	private void CreateKeyBinding(string _actionMethodName, string _description, string _defaultPrimary, bool _defaultMod1Primary, bool _defaultMod2Primary, bool _defaultMod3Primary, string _defaultSecondary, bool _defaultMod1Secondary, bool _defaultMod2Secondary, bool _defaultMod3Secondary, bool _defaultIncludeInCheatsheet = false){
 		KeyCode[] keyCodes = new KeyCode[2];
 		keyCodes[0] = (KeyCode) System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString(_actionMethodName + "PrimaryKey", _defaultPrimary));
 		keyCodes[1] = (KeyCode) System.Enum.Parse(typeof(KeyCode), PlayerPrefs.GetString(_actionMethodName + "SecondaryKey", _defaultSecondary));
@@ -249,10 +249,12 @@ public class Controller : MonoBehaviour {
 		if(int.TryParse(PlayerPrefs.GetString(_actionMethodName + "ModifierListCodeSecondary", KeyBinding.ParseModiferListAsInt(_defaultMod1Secondary, _defaultMod2Secondary, _defaultMod3Secondary).ToString()), out parsedModInt));
 		else Debug.Log("Error parsing secondary modifier list code! - _actionMethodName: " + _actionMethodName);
 		modifierListSecondary = KeyBinding.ParseIntAsModiferList(parsedModInt);
+		bool _includeInCheatsheet = false;
+		Boolean.TryParse(PlayerPrefs.GetString(_actionMethodName + "IncludeInCheatsheet", _defaultIncludeInCheatsheet.ToString()), out _includeInCheatsheet); 
 		KeyBinding workingKeyBinding = new KeyBinding(_actionMethodName, _description, keyCodes[0], modifierListPrimary[0], modifierListPrimary[1], modifierListPrimary[2], keyCodes[1], modifierListSecondary[0], modifierListSecondary[1], modifierListSecondary[2], _includeInCheatsheet);
 		keyBindings.Add(_actionMethodName, workingKeyBinding);
-		defaultKeyBindings.Add(_actionMethodName, new KeyBinding(_actionMethodName, _description, (KeyCode) System.Enum.Parse(typeof(KeyCode), _defaultPrimary), _defaultMod1Primary, _defaultMod2Primary, _defaultMod3Primary, (KeyCode) System.Enum.Parse(typeof(KeyCode), _defaultSecondary), _defaultMod1Secondary, _defaultMod2Secondary, _defaultMod3Secondary, _includeInCheatsheet));
-		workingKeyBinding.AssignKeybindComposite(KeyBinder.keyBinder.CreateKeyBindingComposite(_actionMethodName, _description, keyCodes[0].ToString(), modifierListPrimary[0], modifierListPrimary[1], modifierListPrimary[2], keyCodes[1].ToString(), modifierListSecondary[0], modifierListSecondary[1], modifierListSecondary[2]));
+		defaultKeyBindings.Add(_actionMethodName, new KeyBinding(_actionMethodName, _description, (KeyCode) System.Enum.Parse(typeof(KeyCode), _defaultPrimary), _defaultMod1Primary, _defaultMod2Primary, _defaultMod3Primary, (KeyCode) System.Enum.Parse(typeof(KeyCode), _defaultSecondary), _defaultMod1Secondary, _defaultMod2Secondary, _defaultMod3Secondary, _defaultIncludeInCheatsheet));
+		workingKeyBinding.AssignKeybindComposite(KeyBinder.keyBinder.CreateKeyBindingComposite(_actionMethodName, _description, keyCodes[0].ToString(), modifierListPrimary[0], modifierListPrimary[1], modifierListPrimary[2], keyCodes[1].ToString(), modifierListSecondary[0], modifierListSecondary[1], modifierListSecondary[2], _includeInCheatsheet));
 	}
 	
 	public void ResetToDefaultKeyBindings(){
@@ -279,6 +281,7 @@ public class Controller : MonoBehaviour {
 		bool[] mods1 = new bool[2];
 		bool[] mods2 = new bool[2];
 		bool[] mods3 = new bool[2];
+		bool includeInCheatsheet = false;
 		KeyCode[] keyCodes = new KeyCode[2];
 		foreach(KeyValuePair<string, KeyBinding> defaultKeyBinding in defaultKeyBindings){
 			actionMethodName = "";
@@ -286,6 +289,7 @@ public class Controller : MonoBehaviour {
 			mods1 = new bool[2];
 			mods2 = new bool[2];
 			mods3 = new bool[2];
+			includeInCheatsheet = false;
 			actionMethodName = defaultKeyBinding.Value.actionMethodName;
 			description = defaultKeyBinding.Value.description;
 			mods1[0] = defaultKeyBinding.Value.mods1[0];
@@ -294,11 +298,12 @@ public class Controller : MonoBehaviour {
 			mods1[1] = defaultKeyBinding.Value.mods1[1];
 			mods2[1] = defaultKeyBinding.Value.mods2[1];
 			mods3[1] = defaultKeyBinding.Value.mods3[1];
+			includeInCheatsheet = defaultKeyBinding.Value.includeInCheatsheet;
 			keyCodes[0] = defaultKeyBinding.Value.keyCodes[0];
 			keyCodes[1] = defaultKeyBinding.Value.keyCodes[1];
 			UpdateKeyBinding(0, defaultKeyBinding.Key, keyCodes[0], mods1[0], mods2[0], mods3[0]);
 			UpdateKeyBinding(1, defaultKeyBinding.Key, keyCodes[1], mods1[1], mods2[1], mods3[1]);
-			if(keyBindings[defaultKeyBinding.Key].keybindComposite!=null) KeyBinder.keyBinder.RefreshKeybindComposite(keyBindings[defaultKeyBinding.Key].keybindComposite, keyCodes[0].ToString(), mods1[0], mods2[0], mods3[0], keyCodes[1].ToString(), mods1[1], mods2[1], mods3[1]);
+			if(keyBindings[defaultKeyBinding.Key].keybindComposite!=null) KeyBinder.keyBinder.RefreshKeybindComposite(keyBindings[defaultKeyBinding.Key].keybindComposite, keyCodes[0].ToString(), mods1[0], mods2[0], mods3[0], keyCodes[1].ToString(), mods1[1], mods2[1], mods3[1], includeInCheatsheet);
 			else Debug.Log("KeybindComposite not found!");
 		}
 		KeyBinder.keyBinder.RefreshModComposites();
@@ -329,6 +334,11 @@ public class Controller : MonoBehaviour {
 		if (_index==0) _playerPrefsSetting = (_actionMethodName + "PrimaryKey");
 		else _playerPrefsSetting = (_actionMethodName + "SecondaryKey");
 		PlayerPrefs.SetString(_playerPrefsSetting, _newKey.ToString());
+	}
+	
+	public void ToggleCheatsheetInclusion(string _actionMethodName, bool _include){
+		keyBindings[_actionMethodName].includeInCheatsheet = _include;
+		PlayerPrefs.SetString((_actionMethodName + "IncludeInCheatsheet"), _include.ToString());
 	}
 	
 	public bool IsKeyInputModifier(KeyCode _keyCode){
