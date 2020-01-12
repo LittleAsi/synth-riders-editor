@@ -32,7 +32,7 @@ public class Controller : MonoBehaviour {
     void Start (){
 		// Create headers, input modifiers, and keybindings in the order they should appear in the keybindings UI
 		
-		CreateKeyBindHeader("Input Modifiers");
+		CreateKeyBindSection("Input Modifiers", true);
 		
 		/* Define each input modifier here:
 		Everything is set up to expect exactly three input modifiers
@@ -61,7 +61,7 @@ public class Controller : MonoBehaviour {
 			_includeInCheatsheet - Optional (false by default) - If true, the keybindings cheatsheet UI will display this action
 		A full list of valid KeyCodes is included at the bottom of this file. */
 		
-		CreateKeyBindHeader("Map Editing Controls");
+		CreateKeyBindSection("Map Editing Controls");
 		CreateKeyBinding("AddNoteAction", "Place a Note/Wall on the Grid", "Mouse0", false, false, false, "None", false, false, false);
 		CreateKeyBinding("DragSnapObjectAction", "Drag Note/Wall or Snap Note/Wall to Grid", "Mouse0", false, true, false, "None", false, false, false, true);
 		CreateKeyBinding("SnapGridToObjectAction", "Snap Grid to Note/Wall", "Mouse1", false, true, false, "None", false, false, false, true);
@@ -104,7 +104,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("ToggleSnapToGridAction", "Toggle Snap to Grid", "F3", true, false, false, "None", false, false, false, true);
 		CreateKeyBinding("SaveKeyAction", "Save the Map", "S", true, false, false, "None", false, false, false);
 		
-		CreateKeyBindHeader("Timeline Controls");
+		CreateKeyBindSection("Timeline Controls");
 		CreateKeyBinding("MoveBackwardOnTimelineAction", "Move Backward on Timeline", "DownArrow", false, false, false, "None", false, false, false);
 		CreateKeyBinding("MoveForwardOnTimelineAction", "Move Forward on Timeline", "UpArrow", false, false, false, "None", false, false, false);
 		CreateKeyBinding("JumpToNextBookmarkAction", "Jump to Next Bookmark", "RightBracket", false, false, false, "PageUp", false, false, false);
@@ -112,7 +112,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("TimelineStartAction", "Navigate to Timeline Start", "Home", false, false, false, "None", false, false, false);
 		CreateKeyBinding("TimelineEndAction", "Navigate to Timeline End", "End", false, false, false, "None", false, false, false);
 		
-		CreateKeyBindHeader("Interface Controls");
+		CreateKeyBindSection("Interface Controls");
 		CreateKeyBinding("AdjustBeatStepMeasureDownAction", "Adjust Beat Step Measure Down", "LeftArrow", false, false, false, "None", false, false, false);
 		CreateKeyBinding("AdjustBeatStepMeasureUpAction", "Adjust Beat Step Measure Up", "RightArrow", false, false, false, "None", false, false, false);
 		CreateKeyBinding("AdjustPlaybackSpeedMeasureDownAction", "Adjust Playback Speed Down During Play", "LeftArrow", false, false, false, "None", false, false, false);
@@ -143,7 +143,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("ToggleLatencyPanelAction", "Toggle Latency Panel", "F10", true, false, false, "None", false, false, false);
 		CreateKeyBinding("EditCustomDifficultyAction", "Edit Custom Difficulty Settings", "F11", false, false, false, "None", false, false, false);
 		
-		CreateKeyBindHeader("Camera Controls");
+		CreateKeyBindSection("Camera Controls");
 		CreateKeyBinding("ToggleCenterCameraAction", "Enable the Center View Camera", "Alpha5", false, false, false, "Keypad5", false, false, false);
 		CreateKeyBinding("ToggleLeftViewCameraAction", "Enable the Left View Camera", "Alpha6", false, false, false, "Keypad6", false, false, false);
 		CreateKeyBinding("ToggleRightViewCameraAction", "Enable the Right View Camera", "Alpha7", false, false, false, "Keypad7", false, false, false);
@@ -155,7 +155,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("AdjustFreeCameraPanningUpAction", "Adjust Free Camera Panning Up", "W", false, false, false, "None", false, false, false);
 		CreateKeyBinding("AdjustFreeCameraPanningDownAction", "Adjust Free Camera Panning Down", "S", false, false, false, "None", false, false, false);
 		
-		CreateKeyBindHeader("Other Controls");
+		CreateKeyBindSection("Other Controls");
 		CreateKeyBinding("ExportJSONAction", "Export Map JSON", "F2", false, false, false, "None", false, false, false);
 		CreateKeyBinding("ToggleAutosaveAction", "Toggle Autosave", "F4", false, false, false, "None", false, false, false);
 		CreateKeyBinding("ToggleVsyncAction", "Toggle VSync", "F9", true, false, false, "None", false, false, false);
@@ -224,8 +224,8 @@ public class Controller : MonoBehaviour {
 		}
 	}
 	
-	private void CreateKeyBindHeader(string _description){
-		KeyBinder.keyBinder.CreateKeyBindHeaderComposite(_description);
+	private void CreateKeyBindSection(string _description, bool _excludeCheatsheetText = false){
+		KeyBinder.keyBinder.CreateKeyBindSectionComposite(_description);
 	}
 	
 	private void CreateInputModifier(int _modifierNumber, string _defaultPrimary, string _defaultSecondary){
@@ -309,6 +309,14 @@ public class Controller : MonoBehaviour {
 		KeyBinder.keyBinder.RefreshModComposites();
 	}
 	
+	public void RefreshKeybindComposites(){
+		foreach(KeyValuePair<string, KeyBinding> keyBinding in keyBindings){
+			if(keyBindings[keyBinding.Key].keybindComposite!=null) KeyBinder.keyBinder.RefreshKeybindComposite(keyBindings[keyBinding.Key].keybindComposite, keyBindings[keyBinding.Key].keyCodes[0].ToString(), keyBindings[keyBinding.Key].mods1[0], keyBindings[keyBinding.Key].mods2[0], keyBindings[keyBinding.Key].mods3[0], keyBindings[keyBinding.Key].keyCodes[1].ToString(), keyBindings[keyBinding.Key].mods1[1], keyBindings[keyBinding.Key].mods2[1], keyBindings[keyBinding.Key].mods3[1], keyBindings[keyBinding.Key].includeInCheatsheet);
+			else Debug.Log("KeybindComposite not found!");
+		}
+		KeyBinder.keyBinder.RefreshModComposites();
+	}
+	
 	public void UpdateInputModifier(int _modifierNumber, int _index, KeyCode _newKey){
 		inputModifiers[_modifierNumber-1, _index] = _newKey;
 		string _playerPrefsSetting;
@@ -360,6 +368,7 @@ public class Controller : MonoBehaviour {
 			if(keyBinding.Value.CompareKeybinding(0, _newKey, _mod1, _mod2, _mod3)) UpdateKeyBinding(0, actionMethodName, KeyCode.None, false, false, false);
 			if(keyBinding.Value.CompareKeybinding(1, _newKey, _mod1, _mod2, _mod3)) UpdateKeyBinding(1, actionMethodName, KeyCode.None, false, false, false);
 		}
+		RefreshKeybindComposites();
 	}
 	
 	public bool IsKeyCodeOnlyAlreadyBound(KeyCode _keyCode){
@@ -376,6 +385,7 @@ public class Controller : MonoBehaviour {
 			if(keyBinding.Value.CompareKeyCodeOnly(0, _newKey)) UpdateKeyCodeOnly(0, actionMethodName, KeyCode.None);
 			if(keyBinding.Value.CompareKeyCodeOnly(1, _newKey)) UpdateKeyCodeOnly(1, actionMethodName, KeyCode.None);
 		}
+		RefreshKeybindComposites();
 	}
 	
 	public bool IsKeyBindingPressed(string _actionMethodName){
