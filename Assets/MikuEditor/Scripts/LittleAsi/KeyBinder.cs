@@ -21,9 +21,9 @@ public class KeyBinder : MonoBehaviour {
 	[SerializeField]
     private GameObject m_KeybindPanelContent;
 	[SerializeField]
-    private GameObject m_KeybindComposite;
+    private GameObject m_KeybindSectionComposite;
 	[SerializeField]
-    private GameObject m_KeybindHeaderComposite;
+    private GameObject m_KeybindComposite;
 	[SerializeField]
 	private Animator m_KeyBindingWaitingForKeyWindowAnimator;
 	[SerializeField]
@@ -41,11 +41,12 @@ public class KeyBinder : MonoBehaviour {
 	private string mod1String;
 	private string mod2String;
 	private string mod3String;
-	private List<Text> mod1Texts = new List<Text>();
-	private List<Text> mod2Texts = new List<Text>();
-	private List<Text> mod3Texts = new List<Text>();
-	private List<Text> keyTexts = new List<Text>();
+	private List<TextMeshProUGUI> mod1Texts = new List<TextMeshProUGUI>();
+	private List<TextMeshProUGUI> mod2Texts = new List<TextMeshProUGUI>();
+	private List<TextMeshProUGUI> mod3Texts = new List<TextMeshProUGUI>();
+	private List<TextMeshProUGUI> keyTexts = new List<TextMeshProUGUI>();
 	private GameObject[] modComposites = new GameObject[3];
+	private Transform currentKeybindSectionContent;
 
 	void Awake(){
 		if(keyBinder == null){
@@ -190,18 +191,18 @@ public class KeyBinder : MonoBehaviour {
 	
 	void FinalizeModBinding(int _modiferNumber, int _index, Transform _button){
 		Controller.controller.UpdateInputModifier(_modiferNumber, _index, newKey);
-		_button.transform.Find("Normal").GetComponentInChildren<Text>().text = "\n" + newKey.ToString();
-		_button.transform.Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + newKey.ToString();
+		_button.transform.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = newKey.ToString();
+		_button.transform.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = newKey.ToString();
 		if(_index==0){
-			if(_modiferNumber==1) mod1String = newKey.ToString() + "\n\n";
-			else if(_modiferNumber==2) mod2String = newKey.ToString() + "\n\n";
-			else if(_modiferNumber==3) mod3String = newKey.ToString() + "\n\n";
+			if(_modiferNumber==1) mod1String = newKey.ToString();
+			else if(_modiferNumber==2) mod2String = newKey.ToString();
+			else if(_modiferNumber==3) mod3String = newKey.ToString();
 			UpdateModTexts(_modiferNumber);
 		}
 	}
 	
 	void UpdateModTexts(int _modiferNumber){
-		List<Text> modTexts;
+		List<TextMeshProUGUI> modTexts;
 		string modString;
 		if(_modiferNumber==1) {
 			modTexts = mod1Texts;
@@ -219,21 +220,21 @@ public class KeyBinder : MonoBehaviour {
 			modTexts = mod1Texts;
 			modString = mod1String;
 		}
-		foreach(Text modText in modTexts){
+		foreach(TextMeshProUGUI modText in modTexts){
 			modText.text = modString;
 		}
 	}
 	
 	void FinalizeKeyBinding(int _index, string _actionMethodName, Transform _button){
 		Controller.controller.UpdateKeyBinding(_index, _actionMethodName, newKey, newMod1, newMod2, newMod3);
-		_button.transform.Find("Normal").GetComponentInChildren<Text>().text = "\n" + newKey.ToString();
-		_button.transform.Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + newKey.ToString();
-		_button.transform.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-		_button.transform.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-		_button.transform.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
-		_button.transform.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-		_button.transform.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-		_button.transform.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
+		_button.transform.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = newKey.ToString();
+		_button.transform.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = newKey.ToString();
+		_button.transform.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+		_button.transform.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+		_button.transform.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
+		_button.transform.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+		_button.transform.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+		_button.transform.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
 	}
 
     IEnumerator WaitForKey(){
@@ -252,17 +253,17 @@ public class KeyBinder : MonoBehaviour {
 		m_KeyBindingConfirmRebindWindowAnimator.Play("Panel Out");
 		if(_replace){
 			Controller.controller.ReplaceBoundKeyCodeOnly(newKey);
-			for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
+			/* for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
 				if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton")!=null){
-					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<Text>().text == "\n" + newKey.ToString()) {
-						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Normal").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<Text>().text == "\n" + newKey.ToString()) {
-						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Normal").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
+					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
+						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
+						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
 					}
 				}
-			}
+			} */
 		}
 		FinalizeModBinding(_modifierNumber, _index, _button);
 	}
@@ -271,31 +272,31 @@ public class KeyBinder : MonoBehaviour {
 		m_KeyBindingConfirmRebindWindowAnimator.Play("Panel Out");
 		if(_replace){
 			Controller.controller.ReplaceBoundKey(newKey, newMod1, newMod2, newMod3);
-			for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
+			/* for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
 				if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton")!=null){
-					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<Text>().text == "\n" + newKey.ToString()) {
+					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
 						Transform button = m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton");
-						button.Find("Normal").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						button.Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
-						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
-					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<Text>().text == "\n" + newKey.ToString()) {
+						button.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						button.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
+						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
+					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
 						Transform button = m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton");
-						button.Find("Normal").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						button.Find("Highlighted").GetComponentInChildren<Text>().text = "\n" + KeyCode.None.ToString();
-						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = newMod1;
-						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = newMod2;
-						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
-						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = newMod3;
+						button.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						button.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
+						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
+						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
+						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
+						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
 					}
 				}
-			}
+			} */
 		}
 		FinalizeKeyBinding(_index, _actionMethodName, _button);
 	}
@@ -317,144 +318,162 @@ public class KeyBinder : MonoBehaviour {
 		m_KeyBindingConfirmResetWindowAnimator.Play("Panel In");
 	}
 	
-	public void CreateKeyBindHeaderComposite(string _description){
-		GameObject keybindComposite = GameObject.Instantiate(m_KeybindHeaderComposite);
-		keybindComposite.transform.parent = m_KeybindPanelContent.transform;
-		keybindComposite.transform.Find("Description").GetComponentInChildren<Text>().text = _description;
+	public void CreateKeyBindSectionComposite(string _description, bool _excludeCheatsheetText = false){
+		GameObject keybindSectionComposite = GameObject.Instantiate(m_KeybindSectionComposite);
+		keybindSectionComposite.transform.parent = m_KeybindPanelContent.transform;
+		keybindSectionComposite.transform.Find("SectionTitle").GetComponentInChildren<TextMeshProUGUI>().text = _description;
+		if(_excludeCheatsheetText) keybindSectionComposite.transform.Find("Header").Find("Cheatsheet").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		keybindSectionComposite.transform.parent = m_KeybindPanelContent.transform;
+		currentKeybindSectionContent = keybindSectionComposite.transform.Find("Body").Find("Content");
 	}
 	
 	public void CreateInputModifierComposite(int _modifierNumber, string _description, string _primary, string _secondary){
-		if(_modifierNumber==1) mod1String = _primary + "\n\n";
-		else if(_modifierNumber==2) mod2String = _primary + "\n\n";
-		else if(_modifierNumber==3) mod3String = _primary + "\n\n";
+		if(_modifierNumber==1) mod1String = _primary;
+		else if(_modifierNumber==2) mod2String = _primary;
+		else if(_modifierNumber==3) mod3String = _primary;
 		GameObject keybindComposite = GameObject.Instantiate(m_KeybindComposite);
-		keybindComposite.transform.parent = m_KeybindPanelContent.transform;
-		Transform primaryButton = keybindComposite.transform.Find("PrimaryButton");
-		Transform secondaryButton = keybindComposite.transform.Find("SecondaryButton");
-		keybindComposite.transform.Find("Description").GetComponentInChildren<Text>().text = _description;
-		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = false;
-		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = false;
-		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = false;
-		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = false;
-		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = false;
-		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = false;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = false;
+		keybindComposite.transform.parent = currentKeybindSectionContent.transform;
+		Transform primaryButton = keybindComposite.transform.Find("Buttons").Find("PrimaryButton");
+		Transform secondaryButton = keybindComposite.transform.Find("Buttons").Find("SecondaryButton");
+		keybindComposite.transform.Find("Toggle").gameObject.SetActive(false);
+		keybindComposite.transform.Find("Description").GetComponentInChildren<TextMeshProUGUI>().text = _description;
+		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
 		primaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetInputModifier(_modifierNumber, 0, primaryButton); });
 		secondaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetInputModifier(_modifierNumber, 1, secondaryButton); }); 
 		modComposites[_modifierNumber-1] = keybindComposite;
 	}
 	
-	public GameObject CreateKeyBindingComposite(string _actionMethodName, string _description, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary){
+	public GameObject CreateKeyBindingComposite(string _actionMethodName, string _description, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary, bool _includeInCheatsheet){
 		GameObject keybindComposite = GameObject.Instantiate(m_KeybindComposite);
-		keybindComposite.transform.parent = m_KeybindPanelContent.transform;
-		Transform primaryButton = keybindComposite.transform.Find("PrimaryButton");
-		Transform secondaryButton = keybindComposite.transform.Find("SecondaryButton");
-		keybindComposite.transform.Find("Description").GetComponentInChildren<Text>().text = _description;
-		keyTexts.Add(primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>());
-		keyTexts.Add(primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>());
-		keyTexts.Add(secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>());
-		keyTexts.Add(secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>());
-		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		Text modText = primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>();
+		keybindComposite.transform.parent = currentKeybindSectionContent.transform;
+		Transform primaryButton = keybindComposite.transform.Find("Buttons").Find("PrimaryButton");
+		Transform secondaryButton = keybindComposite.transform.Find("Buttons").Find("SecondaryButton");
+		Toggle cheatsheetToggle = keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
+		keybindComposite.transform.Find("Description").GetComponentInChildren<TextMeshProUGUI>().text = _description;
+		keyTexts.Add(primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>());
+		keyTexts.Add(primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>());
+		keyTexts.Add(secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>());
+		keyTexts.Add(secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>());
+		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		TextMeshProUGUI modText = primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod1String;
 		mod1Texts.Add(modText);
-		modText = primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>();
+		modText = primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod2String;
 		mod2Texts.Add(modText);
-		modText = primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>();
+		modText = primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod3String;
 		mod3Texts.Add(modText);
-		modText = primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>();
+		modText = primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod1String;
 		mod1Texts.Add(modText);
-		modText = primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>();
+		modText = primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod2String;
 		mod2Texts.Add(modText);
-		modText = primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>();
+		modText = primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod3String;
 		mod3Texts.Add(modText);
-		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		modText = secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>();
+		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		modText = secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod1String;
 		mod1Texts.Add(modText);
-		modText = secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>();
+		modText = secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod2String;
 		mod2Texts.Add(modText);
-		modText = secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>();
+		modText = secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod3String;
 		mod3Texts.Add(modText);
-		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>();
+		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod1String;
 		mod1Texts.Add(modText);
-		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>();
+		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod2String;
 		mod2Texts.Add(modText);
-		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>();
+		modText = secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>();
 		modText.text = mod3String;
 		mod3Texts.Add(modText);
-		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Secondary;
+		cheatsheetToggle.isOn = _includeInCheatsheet;
 		primaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetKeyBinding(0, _actionMethodName, primaryButton); });
 		secondaryButton.GetComponentInChildren<Button>().onClick.AddListener(delegate {BeginSetKeyBinding(1, _actionMethodName, secondaryButton); }); 
+		cheatsheetToggle.GetComponentInChildren<Toggle>().onValueChanged.AddListener(delegate {BeginToggleCheatsheetInclusion(_actionMethodName, cheatsheetToggle); }); 
 		return keybindComposite;
 	}
 	
-	public void RefreshKeybindComposite(GameObject _keybindComposite, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary){
-		Transform primaryButton = _keybindComposite.transform.Find("PrimaryButton");
-		Transform secondaryButton = _keybindComposite.transform.Find("SecondaryButton");
-		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _primary;
-		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + _secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<Text>().enabled = _mod1Secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<Text>().enabled = _mod2Secondary;
-		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
-		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Primary;
-		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
-		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<Text>().enabled = _mod3Secondary;
+	public void BeginToggleCheatsheetInclusion(string _actionMethodName, Toggle _cheatsheetToggle){
+		Controller.controller.ToggleCheatsheetInclusion(_actionMethodName, _cheatsheetToggle.isOn);
 	}
 	
+	public void RefreshKeybindComposite(GameObject _keybindComposite, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary, bool _includeInCheatsheet){
+		Transform primaryButton = _keybindComposite.transform.Find("Buttons").Find("PrimaryButton");
+		Transform secondaryButton = _keybindComposite.transform.Find("Buttons").Find("SecondaryButton");
+		Toggle cheatsheetToggle = _keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
+		primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _primary;
+		secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = _secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod1Secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod2Secondary;
+		primaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Primary;
+		primaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Primary;
+		secondaryButton.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Secondary;
+		secondaryButton.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = _mod3Secondary;
+		cheatsheetToggle.isOn = _includeInCheatsheet;
+	}
+
 	public void RefreshModComposites(){
 		Transform primaryButton;
 		Transform secondaryButton;
 		for(int i=0;i<=2;i++){
-			primaryButton = modComposites[i].transform.Find("PrimaryButton");
-			secondaryButton = modComposites[i].transform.Find("SecondaryButton");
-			primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + Controller.controller.inputModifiers[i, 0];
-			primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + Controller.controller.inputModifiers[i, 0];
-			secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + Controller.controller.inputModifiers[i, 1];
-			secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<Text>().text = "\n" + Controller.controller.inputModifiers[i, 1];
-			if(i==0) mod1String = Controller.controller.inputModifiers[0, 0].ToString() + "\n\n";
-			else if(i==1) mod2String = Controller.controller.inputModifiers[1, 0].ToString() + "\n\n";
-			else if(i==2) mod3String = Controller.controller.inputModifiers[2, 0].ToString() + "\n\n";
+			primaryButton = modComposites[i].transform.Find("Buttons").Find("PrimaryButton");
+			secondaryButton = modComposites[i].transform.Find("Buttons").Find("SecondaryButton");
+			primaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = Controller.controller.inputModifiers[i, 0].ToString();
+			primaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = Controller.controller.inputModifiers[i, 0].ToString();
+			secondaryButton.Find("Normal").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = Controller.controller.inputModifiers[i, 1].ToString();
+			secondaryButton.Find("Highlighted").Find("TextScaler").GetComponentInChildren<TextMeshProUGUI>().text = Controller.controller.inputModifiers[i, 1].ToString();
+			if(i==0) mod1String = Controller.controller.inputModifiers[0, 0].ToString();
+			else if(i==1) mod2String = Controller.controller.inputModifiers[1, 0].ToString();
+			else if(i==2) mod3String = Controller.controller.inputModifiers[2, 0].ToString();
 			UpdateModTexts(i+1);
 		}
+	}
+	
+	public void RefreshLayout(){
+		//LayoutRebuilder.ForceRebuildLayoutImmediate(m_KeybindPanelContent.transform.GetComponentInChildren<RectTransform>());
+		//LayoutRebuilder.ForceRebuildLayoutImmediate(m_KeybindPanelContent.transform.GetComponentInChildren<RectTransform>());
 	}
 }

@@ -3446,6 +3446,7 @@ namespace MiKu.NET {
                 //m_HelpWindowAnimator.Play("Panel Out");
                 m_KeyBindingWindowAnimator.Play("Panel Out");
             } else {
+				//KeyBinder.keyBinder.RefreshLayout();
                 helpWindowOpen = true;
 				KeyBinder.keyBinder.panelActive = true;
                 //m_HelpWindowAnimatorm_HelpWindowAnimator.Play("Panel In");
