@@ -372,7 +372,7 @@ namespace MiKu.NET {
 						jsonDATA = JsonConvert.SerializeObject(oldJSON, Formatting.Indented);
 						Debug.Log("Wall format update complete");
 					}
-                    ChartData = JsonConvert.DeserializeObject<Chart>(jsonDATA);
+                    ChartData = JsonConvert.DeserializeObject<Chart>(jsonDATA, new JsonSerializerSettings {MissingMemberHandling = MissingMemberHandling.Ignore});
                 } catch(Exception) {
                     Debug.Log("File made in version previous to 1.8, trying BinaryFormatter");
                     // Section for load of files previos to version 1.8					

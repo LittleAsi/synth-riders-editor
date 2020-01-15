@@ -159,6 +159,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("ExportJSONAction", "Export Map JSON", "F2", false, false, false, "None", false, false, false);
 		CreateKeyBinding("ToggleAutosaveAction", "Toggle Autosave", "F4", false, false, false, "None", false, false, false);
 		CreateKeyBinding("ToggleVsyncAction", "Toggle VSync", "F9", true, false, false, "None", false, false, false);
+		CreateKeyBinding("ToggleProductionModeAction", "Toggle Draft Mode", "F9", true, true, false, "None", false, false, false);
 		
 		// Each _actionMethodName described above should be associated with a function in Track.cs
 		// Pressing the bound keys above will trigger the associated _actionMethodName
