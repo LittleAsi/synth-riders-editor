@@ -1811,6 +1811,14 @@ namespace MiKu.NET {
 			ToggleVsycn();
 		}
 		
+		public void ToggleProductionModeAction(){
+			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			CurrentChart.ProductionMode = !CurrentChart.ProductionMode;
+			m_diplaySongName.SetText(CurrentChart.ProductionMode ? CurrentChart.Name : (CurrentChart.Name + " - Draft Mode"));
+			if (CurrentChart.ProductionMode) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, "Draft mode disabled; player scores will be recorded!");
+			else Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, "Draft mode enabled; player scores will not be recorded!");
+		}
+		
 #endregion
 		
 		public void ToggleStepType(bool displayOnly = false)
@@ -3746,7 +3754,7 @@ namespace MiKu.NET {
                 m_statsAdminOnlyWrap.SetActive(false);
             }
 
-            m_diplaySongName.SetText(CurrentChart.Name);
+            m_diplaySongName.SetText(CurrentChart.ProductionMode ? CurrentChart.Name : (CurrentChart.Name + " - Draft Mode"));
         }
 
         /// <summary>

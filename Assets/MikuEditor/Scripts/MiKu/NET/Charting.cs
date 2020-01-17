@@ -506,6 +506,11 @@ namespace MiKu.NET.Charting {
         /// Flag that indicates if the chart has been updated with the Crouch and Slide movement changes
         /// </value>
 		public bool UpdatedWithMovementPositions { get; set;}
+		
+		/// <value>
+        /// Flag that indicates if the chart has been updated with the Crouch and Slide movement changes
+        /// </value>
+		public bool ProductionMode { get; set;}
 
         public List<string> Tags { get; set; }
 

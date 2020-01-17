@@ -36,6 +36,7 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 	public InputField editTrackField;
 	public Image editArtworkField;
 	public InputField editMapperField;
+	public Toggle editDraftModeField;
 
 	public Button editChartButton;
 
@@ -221,6 +222,7 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				editAuthorField.text = Serializer.ChartData.Author;
 				editTrackField.text = (Serializer.ChartData.AudioData != null) ? string.Empty : Serializer.ChartData.AudioName;
 				editMapperField.text = Serializer.ChartData.Beatmapper;
+				editDraftModeField.isOn = !Serializer.ChartData.ProductionMode;
 				if(!isJSON) {
 					Serializer.ChartData.FilePath = absoluteUri;
 				}				
@@ -297,7 +299,13 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				if(Serializer.ChartData.Bookmarks == null) { 
 					Serializer.ChartData.Bookmarks = new Bookmarks();
 				}
-
+				
+				Serializer.GetAudioClipFromZip(
+                    (Serializer.ChartData.FilePath != null && Serializer.CurrentAudioFileToCompress == null) ? Serializer.ChartData.FilePath : string.Empty,
+                    (Serializer.CurrentAudioFileToCompress == null) ? Serializer.ChartData.AudioName : Serializer.CurrentAudioFileToCompress,
+                    AudioPreviewer.audioPreviewer.Enable
+                );
+				
 				InitFormsSelection(true);	
 			}			
 		}
@@ -340,7 +348,8 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 						} else {
 							Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_AudioLoadError);
 						}
-						
+						// AUDIO LOADED HERE
+						if(AudioPreviewer.audioPreviewer!=null) AudioPreviewer.audioPreviewer.Enable(loadedClip);
 						HidePreloader();
 					} else {				
 						Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_NoAudioSelected);
@@ -586,6 +595,7 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				chart.Lights = defaultLights;
 				chart.UsingBeatMeasure = true;
 				chart.UpdatedWithMovementPositions = false;
+				chart.ProductionMode = false;
 				
 				Serializer.ChartData = chart;
 			}
@@ -606,9 +616,10 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				Serializer.ChartData.Author = editAuthorField.text;
 				Serializer.ChartData.AudioName = editTrackField.text;
 				Serializer.ChartData.Beatmapper = editMapperField.text;
+				Serializer.ChartData.ProductionMode = !editDraftModeField.isOn;
 			}
 			// Complete editor process
-			// Serializer.SerializeToFile();			
+	
 			Miku_LoaderHelper.LauchPreloader();
 		}
 	}
@@ -628,6 +639,7 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 		editAuthorField.text = string.Empty;
 		editTrackField.text = string.Empty;
 		editMapperField.text = string.Empty;
+		editDraftModeField.isOn = false;
 		
 		newAudioSelected = false;
 		Serializer.ChartData = null;
