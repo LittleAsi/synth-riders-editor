@@ -19,6 +19,8 @@ public class Controller : MonoBehaviour {
 	public bool isMod3Down = false;
 	[SerializeField]
     private GameObject m_KeybindingCheatsheet;
+	[SerializeField]
+    private ScrollRect m_KeybindingScrollRect;
 
     void Awake(){
 		if(controller == null){
@@ -170,6 +172,8 @@ public class Controller : MonoBehaviour {
 		// Joystick axes are hard-coded, but alternates are bindable
 		
 		UpdateCheatsheet();
+		KeyBinder.keyBinder.finalizeScale();
+		m_KeybindingScrollRect.normalizedPosition = new Vector2(0, 1);
     }
  
     void Update (){

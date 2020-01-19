@@ -38,6 +38,8 @@ public class KeyBinder : MonoBehaviour {
 	private Button m_KeyBindingConfirmRebindCancel;
 	[SerializeField]
 	private GameObject m_KeyBindingConfirmRebindContent;
+	[SerializeField]
+	private GameObject m_KeyBindingSpacer;
 	private string mod1String;
 	private string mod2String;
 	private string mod3String;
@@ -47,6 +49,9 @@ public class KeyBinder : MonoBehaviour {
 	private List<TextMeshProUGUI> keyTexts = new List<TextMeshProUGUI>();
 	private GameObject[] modComposites = new GameObject[3];
 	private Transform currentKeybindSectionContent;
+	private float sectionPadding = 200f;
+	private float nextSectionStart = 0f;
+	private float sectionPositionFactor = 1.0f;
 
 	void Awake(){
 		if(keyBinder == null){
@@ -55,6 +60,10 @@ public class KeyBinder : MonoBehaviour {
 		} else if(keyBinder != this){
 			Destroy(gameObject);
 		}
+		sectionPositionFactor = 1+(384f/Screen.width)+(.6f*((1600-Screen.width)/1600f));
+	}
+	
+	void Start(){
 	}
 	
 	void OnGUI(){
@@ -253,17 +262,6 @@ public class KeyBinder : MonoBehaviour {
 		m_KeyBindingConfirmRebindWindowAnimator.Play("Panel Out");
 		if(_replace){
 			Controller.controller.ReplaceBoundKeyCodeOnly(newKey);
-			/* for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
-				if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton")!=null){
-					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
-						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
-						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-					}
-				}
-			} */
 		}
 		FinalizeModBinding(_modifierNumber, _index, _button);
 	}
@@ -272,31 +270,6 @@ public class KeyBinder : MonoBehaviour {
 		m_KeyBindingConfirmRebindWindowAnimator.Play("Panel Out");
 		if(_replace){
 			Controller.controller.ReplaceBoundKey(newKey, newMod1, newMod2, newMod3);
-			/* for(int i = 0; i < m_KeybindPanelContent.transform.childCount; i++){
-				if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton")!=null){
-					if(m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
-						Transform button = m_KeybindPanelContent.transform.GetChild(i).Find("PrimaryButton");
-						button.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						button.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
-						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
-						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
-						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
-						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
-						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
-					} else if(m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton").GetComponentInChildren<TextMeshProUGUI>().text == newKey.ToString()) {
-						Transform button = m_KeybindPanelContent.transform.GetChild(i).Find("SecondaryButton");
-						button.Find("Normal").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						button.Find("Highlighted").GetComponentInChildren<TextMeshProUGUI>().text = KeyCode.None.ToString();
-						button.Find("Normal").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
-						button.Find("Highlighted").Find("TextScalerMod1").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod1;
-						button.Find("Normal").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
-						button.Find("Highlighted").Find("TextScalerMod2").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod2;
-						button.Find("Normal").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
-						button.Find("Highlighted").Find("TextScalerMod3").GetComponentInChildren<TextMeshProUGUI>().enabled = newMod3;
-					}
-				}
-			} */
 		}
 		FinalizeKeyBinding(_index, _actionMethodName, _button);
 	}
@@ -320,10 +293,15 @@ public class KeyBinder : MonoBehaviour {
 	
 	public void CreateKeyBindSectionComposite(string _description, bool _excludeCheatsheetText = false){
 		GameObject keybindSectionComposite = GameObject.Instantiate(m_KeybindSectionComposite);
+		m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta = new Vector2(m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.x, m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.y + keybindSectionComposite.GetComponent<RectTransform>().rect.height + sectionPadding);
 		keybindSectionComposite.transform.parent = m_KeybindPanelContent.transform;
+		Vector3 localPos = keybindSectionComposite.transform.localPosition;
+		localPos.y = nextSectionStart;
+		localPos.x = 0;
+		keybindSectionComposite.transform.localPosition = localPos;
+		nextSectionStart = (keybindSectionComposite.transform.localPosition.y - keybindSectionComposite.GetComponent<RectTransform>().rect.height - sectionPadding);
 		keybindSectionComposite.transform.Find("SectionTitle").GetComponentInChildren<TextMeshProUGUI>().text = _description;
 		if(_excludeCheatsheetText) keybindSectionComposite.transform.Find("Header").Find("Cheatsheet").GetComponentInChildren<TextMeshProUGUI>().enabled = false;
-		keybindSectionComposite.transform.parent = m_KeybindPanelContent.transform;
 		currentKeybindSectionContent = keybindSectionComposite.transform.Find("Body").Find("Content");
 	}
 	
@@ -332,7 +310,9 @@ public class KeyBinder : MonoBehaviour {
 		else if(_modifierNumber==2) mod2String = _primary;
 		else if(_modifierNumber==3) mod3String = _primary;
 		GameObject keybindComposite = GameObject.Instantiate(m_KeybindComposite);
+		m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta = new Vector2(m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.x, m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.y + keybindComposite.GetComponent<RectTransform>().rect.height*sectionPositionFactor);
 		keybindComposite.transform.parent = currentKeybindSectionContent.transform;
+		nextSectionStart -= (keybindComposite.GetComponent<RectTransform>().rect.height*sectionPositionFactor);
 		Transform primaryButton = keybindComposite.transform.Find("Buttons").Find("PrimaryButton");
 		Transform secondaryButton = keybindComposite.transform.Find("Buttons").Find("SecondaryButton");
 		keybindComposite.transform.Find("Toggle").gameObject.SetActive(false);
@@ -361,6 +341,8 @@ public class KeyBinder : MonoBehaviour {
 	public GameObject CreateKeyBindingComposite(string _actionMethodName, string _description, string _primary, bool _mod1Primary, bool _mod2Primary, bool _mod3Primary, string _secondary, bool _mod1Secondary, bool _mod2Secondary, bool _mod3Secondary, bool _includeInCheatsheet){
 		GameObject keybindComposite = GameObject.Instantiate(m_KeybindComposite);
 		keybindComposite.transform.parent = currentKeybindSectionContent.transform;
+		m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta = new Vector2(m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.x, m_KeybindPanelContent.GetComponent<RectTransform>().sizeDelta.y + keybindComposite.GetComponent<RectTransform>().rect.height*sectionPositionFactor);
+		nextSectionStart -= keybindComposite.GetComponent<RectTransform>().rect.height*sectionPositionFactor;
 		Transform primaryButton = keybindComposite.transform.Find("Buttons").Find("PrimaryButton");
 		Transform secondaryButton = keybindComposite.transform.Find("Buttons").Find("SecondaryButton");
 		Toggle cheatsheetToggle = keybindComposite.transform.Find("Toggle").GetComponentInChildren<Toggle>();
@@ -472,8 +454,10 @@ public class KeyBinder : MonoBehaviour {
 		}
 	}
 	
-	public void RefreshLayout(){
-		//LayoutRebuilder.ForceRebuildLayoutImmediate(m_KeybindPanelContent.transform.GetComponentInChildren<RectTransform>());
-		//LayoutRebuilder.ForceRebuildLayoutImmediate(m_KeybindPanelContent.transform.GetComponentInChildren<RectTransform>());
+	public void finalizeScale(){
+		float newScale = (Screen.width/1920f)*(1720f/960f);
+		float spacerHeight = m_KeybindPanelContent.GetComponent<RectTransform>().rect.height*(newScale-1f);
+		m_KeybindPanelContent.transform.localScale = new Vector3(m_KeybindPanelContent.transform.localScale.x*newScale, m_KeybindPanelContent.transform.localScale.y*newScale, m_KeybindPanelContent.transform.localScale.z);
+		m_KeyBindingSpacer.GetComponent<RectTransform>().sizeDelta = new Vector2(1, spacerHeight);
 	}
 }
