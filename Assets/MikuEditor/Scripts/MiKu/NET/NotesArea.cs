@@ -330,6 +330,10 @@ namespace MiKu.NET {
 			m_rightHandColor = _rightHandColor;
 			m_OneHandColor = _oneHandColor;
 			m_BothHandColor = _twoHandColor;
+			m_leftHandColor.a = (45f/256f);
+			m_rightHandColor.a = (45f/256f);
+			m_OneHandColor.a = (45f/256f);
+			m_BothHandColor.a = (45f/256f);
 		}
 		
         public void SetHistoryCircleColor(Vector3[] points, Charting.Note.NoteType[] types) {
