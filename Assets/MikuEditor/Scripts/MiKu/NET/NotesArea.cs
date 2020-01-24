@@ -324,7 +324,14 @@ namespace MiKu.NET {
                 hc.SetActive(false);
             }
         }
-
+		
+		public void ResetHistoryCircleColor(Color _leftHandColor, Color _rightHandColor, Color _oneHandColor, Color _twoHandColor){
+			m_leftHandColor = _leftHandColor;
+			m_rightHandColor = _rightHandColor;
+			m_OneHandColor = _oneHandColor;
+			m_BothHandColor = _twoHandColor;
+		}
+		
         public void SetHistoryCircleColor(Vector3[] points, Charting.Note.NoteType[] types) {
             HideHistoryCircle();
 

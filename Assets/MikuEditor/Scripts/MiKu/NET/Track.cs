@@ -449,6 +449,18 @@ namespace MiKu.NET {
 
         [SerializeField]
         private GameObject m_RightSideBar;
+		
+		[SerializeField]
+		private GameObject m_RightSideBarLeftHandNoteComposite;
+		
+		[SerializeField]
+		private GameObject m_RightSideBarRightHandNoteComposite;
+		
+		[SerializeField]
+		private GameObject m_RightSideBarOneHandNoteComposite;
+		
+		[SerializeField]
+		private GameObject m_RightSideBarTwoHandNoteComposite;
 
         [SerializeField]
         private GameObject m_LeftSideBar;
@@ -778,6 +790,7 @@ namespace MiKu.NET {
         private PromtType currentPromt = PromtType.BackToMenu;
         private bool promtWindowOpen = false;
         private bool helpWindowOpen = false;
+		private bool colorPickerWindowOpen = false;
 
         // For the ease of disabling/enabling notes when arrive the base
         private List<GameObject> disabledNotes;
@@ -919,6 +932,13 @@ namespace MiKu.NET {
 		
 		// For undo/redo
         public History history = new History();
+		
+		// For custom note color selection
+		private Color leftHandColor;
+		private Color rightHandColor;
+		private Color oneHandColor;
+		private Color twoHandColor;
+		
 
         // Use this for initialization
         void Awake () {	
@@ -969,9 +989,21 @@ namespace MiKu.NET {
 			
 			m_TimeSlider.onValueChanged.AddListener (delegate {TimeSliderChange(m_TimeSlider.value);});
 			
-            s_instance = this;			
+            s_instance = this;	
+			
+			if(ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString("LeftHandColor", "019BAB"), out leftHandColor));
+			else Debug.Log("Error parsing saved left hand color code!");
+			if(ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString("RightHandColor", "E32862"), out rightHandColor));
+			else Debug.Log("Error parsing saved right hand color code!");
+			if(ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString("OneHandColor", "4ABC08"), out oneHandColor));
+			else Debug.Log("Error parsing saved one hand color code!");
+			if(ColorUtility.TryParseHtmlString("#" + PlayerPrefs.GetString("TwoHandColor", "FB9D11"), out twoHandColor));
+			else Debug.Log("Error parsing saved two hand color code!");
         }
-
+		void Start(){
+			Track.SetCustomNoteColors(leftHandColor, rightHandColor, oneHandColor, twoHandColor);
+		}
+		
         void OnApplicationFocus(bool hasFocus)
         {
             if(hasFocus) {
@@ -1041,13 +1073,13 @@ namespace MiKu.NET {
 			isSHIFDown = Controller.controller.isMod3Down;
 			
 			if(Controller.controller.GetKeyDown("ToggleSelectionAreaAction")) {
-                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen) {
+                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen && !colorPickerWindowOpen) {
                     ToggleSelectionArea();
                 }				
             }
 			
 			if(Controller.controller.GetKeyUp("ToggleSelectionAreaAction")) {
-                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen) {
+                if(!isOnLongNoteMode && !PromtWindowOpen && !isPlaying && !helpWindowOpen && !colorPickerWindowOpen) {
                     ToggleSelectionArea(true);
                 }
             }
@@ -1084,7 +1116,7 @@ namespace MiKu.NET {
 				nextKeyHold = -1;
 			}
 
-			if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen && !helpWindowOpen) {
+			if( hortAxis != 0 && !isBusy && keyHoldTime > nextKeyHold && !PromtWindowOpen && !helpWindowOpen && !colorPickerWindowOpen) {
 				nextKeyHold = keyHoldTime + keyHoldDelta;
 				if(!IsPlaying) {
 					
@@ -1101,7 +1133,7 @@ namespace MiKu.NET {
 				keyHoldTime = 0.0f;				
 			}            
 
-			if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen) {
+			if( vertAxis < 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen && !colorPickerWindowOpen) {
 				nextKeyHold = keyHoldTime + keyHoldDelta;
 
 				if(!IsPlaying) {
@@ -1122,7 +1154,7 @@ namespace MiKu.NET {
 				keyHoldTime = 0.0f;
 			}
 			
-			if( vertAxis > 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen) {				
+			if( vertAxis > 0 && keyHoldTime > nextKeyHold && !PromtWindowOpen && !isCTRLDown && !isALTDown && !helpWindowOpen && !colorPickerWindowOpen) {				
 				nextKeyHold = keyHoldTime + keyHoldDelta;
 
 				if(!isPlaying) {
@@ -1143,7 +1175,7 @@ namespace MiKu.NET {
 			}
 
 			// Mouse Scroll
-			if (Input.GetAxis("Mouse ScrollWheel") > 0f && !PromtWindowOpen && !helpWindowOpen) // forward
+			if (Input.GetAxis("Mouse ScrollWheel") > 0f && !PromtWindowOpen && !helpWindowOpen && !colorPickerWindowOpen) // forward
 			{
 
 				if (IsPlaying) {
@@ -1170,7 +1202,7 @@ namespace MiKu.NET {
 					}
 				}                			
 			}
-			else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen && !helpWindowOpen) // backwards
+			else if (Input.GetAxis("Mouse ScrollWheel") < 0f && !PromtWindowOpen && !helpWindowOpen && !colorPickerWindowOpen) // backwards
 			{
 				if (IsPlaying) {
 					TogglePlay();
@@ -1208,7 +1240,7 @@ namespace MiKu.NET {
 				UpdateSelectionMarker();
 			}
 
-			if(!isALTDown && !promtWindowOpen && !helpWindowOpen) {
+			if(!isALTDown && !promtWindowOpen && !helpWindowOpen && !colorPickerWindowOpen) {
 				notesArea.IsOnKeyboardEditMode = isKeyboardAddNoteDown;
 				if(isKeyboardAddNoteDown) {
 					notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
@@ -1227,6 +1259,7 @@ namespace MiKu.NET {
                 && !isOnLongNoteMode 
                 && !PromtWindowOpen
 				&& !helpWindowOpen
+				&& !colorPickerWindowOpen
                 && !isPlaying) {
                 SaveChartAction();
             }
@@ -1245,12 +1278,12 @@ namespace MiKu.NET {
 		// Keybound actions called primarily from Controller.cs
 		
 		public void AddNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			if(NotesArea.SelectedNote != null) notesArea.AddNoteOnClick();
 		}
 		
 		public void DragSnapObjectAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// Performs these actions in the listed priority:
 			// 1. Starts note drag if the note is already on the cursor position
 			// 2. Starts wall drag if the wall is already on the cursor position
@@ -1271,7 +1304,7 @@ namespace MiKu.NET {
 		}
 		
 		public void SnapGridToObjectAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// Moves cursor to clicked note or wall position
 			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 			EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
@@ -1282,7 +1315,7 @@ namespace MiKu.NET {
 		}
 		
 		public void RemoteDeleteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// Deletes clicked note or wall
 			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 			EditorWall _editorWall = wallDragger.WallUnderMouse(wallDragger.activatedCamera, wallDragger.wallsLayer);
@@ -1306,107 +1339,107 @@ namespace MiKu.NET {
 		}
 		
 		public void TogglePlayAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
             TogglePlay();
 		}
 		
 		public void TogglePlayReturnAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			TogglePlay(true);
 		}
 		
 		public void SelectLeftHandNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.LeftHanded));
 			markerWasUpdated = true;
 		}
 		
 		public void SelectRightHandNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.RightHanded));
 			markerWasUpdated = true;
 		}
 		
 		public void SelectOneHandSpecialNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.OneHandSpecial));
 			markerWasUpdated = true;
 		}
 		
 		public void SelectTwoHandSpecialNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			SetNoteMarkerType(GetNoteMarkerTypeIndex(Note.NoteType.BothHandsSpecial));
 			markerWasUpdated = true;
 		}
 		
 		public void AddNodeToExistingRailAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			if (NotesArea.SelectedNote != null) {
                 railEditor.AddNodeToActiveRail(NotesArea.SelectedNote);
             } else Debug.Log("selectedNote not found!");
 		}
 		
 		public void ToggleLongNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleLineMode();
 		}
 		
 		public void ToggleBookmarkAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleBookmarkToChart();
 		}
 		
 		public void ToggleFlashAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleEffectToChart();
 		}
 		
 		public void ToggleLeftSideWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(SLIDE_LEFT_TAG);
 		}
 		
 		public void ToggleRightSideWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(SLIDE_RIGHT_TAG);
 		}
 		
 		public void ToggleCenterWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(SLIDE_CENTER_TAG);
 		}
 		
 		public void ToggleLeftDiagonalWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(SLIDE_LEFT_DIAG_TAG);
 		}
 		
 		public void ToggleRightDiagonalWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(SLIDE_RIGHT_DIAG_TAG);
 		}
 		
 		public void ToggleCrouchWallAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMovementSectionToChart(CROUCH_TAG);
 		}
 		
 		public void ToggleSelectionAreaAction(){
-			if(isOnLongNoteMode || PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(isOnLongNoteMode || PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleSelectionArea();
 		}
 		
 		public void SelectAllAction(){
-			if(PromtWindowOpen || helpWindowOpen || isOnLongNoteMode || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || isOnLongNoteMode || IsPlaying) return;
 			SelectAll();
 		}
 		
 		public void DeleteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			DeleteNotesAtTheCurrentTime();
@@ -1414,14 +1447,14 @@ namespace MiKu.NET {
 		}
 		
 		public void DeleteAllObjectsAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			DoClearNotePositions();
 		}
 		
 		public void ChangeNoteColorAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 			if(_clickedNote != null && _clickedNote.noteGO != null) {
 				TryChangeColorSelectedNote(_clickedNote.noteGO.transform.position);
@@ -1429,7 +1462,7 @@ namespace MiKu.NET {
 		}
 		
 		public void AddMirrorNoteAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			EditorNote _clickedNote = NoteRayUtil.NoteUnderMouse(noteDragger.activatedCamera, noteDragger.notesLayer);
 			if(_clickedNote != null && _clickedNote.noteGO != null) {
 				TryMirrorSelectedNote(_clickedNote.noteGO.transform.position);
@@ -1437,49 +1470,49 @@ namespace MiKu.NET {
 		}
 				
 		public void FlipAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			FlipSelected();
 		}
 		
 		public void CopyKeyAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			CopyAction();
 		}
 		
 		public void PasteKeyAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			PasteAction();
 		}
 		
 		public void PasteMirrorKeyAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			PasteAction(true);
 		}
 		
 		public void UndoAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			Undo();
 		}
 		
 		public void RedoAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			Redo();
 		}
 		
 		public void AddNoteWhilePlayingAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			isKeyboardAddNoteDown = true;
 			if(isPlaying) {
 				TryAdddNoteToGridCenter();
@@ -1487,7 +1520,7 @@ namespace MiKu.NET {
 		}
 		
 		public void CycleNoteTypeAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			middleButtonNoteTarget = GetNoteMarkerTypeIndex(selectedNoteType) + 1;
 			if(MiddleButtonSelectorType == 0 && middleButtonNoteTarget > 1) {
 				middleButtonNoteTarget = 0;
@@ -1505,62 +1538,62 @@ namespace MiKu.NET {
 		}
 		
 		public void CycleMiddleMouseButtonAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			UpdateMiddleButtonSelector();
 		}
 		
 		public void ClearAllBookmarksAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			DoClearBookmarks();
 		}
 		
 		public void CycleStepSelectorTypeAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleStepType();
 		}
 		
 		public void ToggleMirrorModeAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMirrorMode();	
 		}
 		
 		public void ToggleInverseYAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			YAxisInverse = !YAxisInverse;
 		}
 		
 		public void ToggleSnapToGridAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleGripSnapping();
 		}
 		
 		public void SaveKeyAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			DoSaveAction();
 		}
 		
 		public void MoveBackwardOnTimelineAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See Update();
 		}
 		
 		public void MoveForwardOnTimelineAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See Update();
 		}
 		
 		public void JumpToNextBookmarkAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			JumpToMeasure(GetNextBookamrk());
 		}
 		
 		public void JumpToPreviousBookmarkAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			JumpToMeasure(GetPrevBookamrk());
 		}
 		
 		public void TimelineStartAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			ReturnToStartTime();
@@ -1568,7 +1601,7 @@ namespace MiKu.NET {
 		}
 		
 		public void TimelineEndAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			GoToEndTime();
@@ -1576,87 +1609,87 @@ namespace MiKu.NET {
 		}
 		
 		public void AdjustBeatStepMeasureDownAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See Update();
 		}
 		
 		public void AdjustBeatStepMeasureUpAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See Update();
 		}
 		
 		public void AdjustPlaybackSpeedMeasureDownAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See Update();
 		}
 		
 		public void AdjustPlaybackSpeedMeasureUpAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			// See Update();
 		}
 		
 		public void AdjustMusicVolumeDownAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			m_VolumeSlider.value -= 0.1f;
 		}
 		
 		public void AdjustMusicVolumeUpAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			m_VolumeSlider.value += 0.1f;
 		}
 		
 		public void AdjustSFXVolumeDownAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			m_SFXVolumeSlider.value -= 0.1f;
 		}
 		
 		public void AdjustSFXVolumeUpAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			m_SFXVolumeSlider.value += 0.1f;
 		}
 		
 		public void AdjustGridSizeDownAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			gridManager.ChangeGridSize(false);
 		}
 		
 		public void AdjustGridSizeUpAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			gridManager.ChangeGridSize();
 		}
 		
 		public void ToggleGridGuideAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleGridGuide();
 		}
 		
 		public void SwitchGridGuideAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			SwitchGruidGuideType();
 		}
 		
 		public void ToggleStepSaverAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleStepMeasureSettings();
 		}
 		
 		public void ToggleTimelineScrollSoundAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			ToggleScrollSound();
 		}
 		
 		public void ToggleNoteHighlightAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			HighlightNotes();
 		}
 		
 		public void ToggleSidebarsAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleSideBars();
 		}
 		
 		public void ToggleLastNoteShadowAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			showLastPlaceNoted = !showLastPlaceNoted;
 			if(!showLastPlaceNoted) {
 				notesArea.HideHistoryCircle();
@@ -1666,17 +1699,17 @@ namespace MiKu.NET {
 		}
 		
 		public void ToggleMetronomeAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleMetronome();
 		}
 		
 		public void ToggleKeyBindingsPanelAction(){
-			if(PromtWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleHelpWindow();
 		}
 		
 		public void AcceptPromptAction(){
-			if(helpWindowOpen || IsPlaying) return;
+			if(helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			if(PromtWindowOpen) {
 				OnAcceptPromt();
 			}
@@ -1688,6 +1721,10 @@ namespace MiKu.NET {
 				ClosePromtWindow();	
 				return;
 			}
+			if(colorPickerWindowOpen) {
+				ColorPicker.colorPicker.CancelChanges();	
+				return;
+			}
 			if(CurrentSelection.endTime > CurrentSelection.startTime) {
 				ClearSelectionMarker();		
 				return;				
@@ -1696,12 +1733,12 @@ namespace MiKu.NET {
 		}
 		
 		public void ToggleStatsAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleStatsWindow();
 		}
 		
 		public void ToggleFullStatsAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			m_FullStatsContainer.SetActive(!m_FullStatsContainer.activeInHierarchy);
 			if(m_FullStatsContainer.activeInHierarchy) {
 				GetCurrentStats();
@@ -1709,7 +1746,7 @@ namespace MiKu.NET {
 		}
 		
 		public void ToggleBookmarkJumpAction(){
-			if(helpWindowOpen || IsPlaying) return;
+			if(helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			if(PromtWindowOpen){
 				if(currentPromt == PromtType.AddBookmarkAction) {
 					if(!m_BookmarkInput.isFocused) {
@@ -1721,98 +1758,98 @@ namespace MiKu.NET {
 		}
 		
 		public void ToggleMouseSensitivityPanelAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			DoMouseSentitivity();
 		}
 		
 		public void ToggleAudioSpectrumAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			ToggleAudioSpectrum();
 		}
 		
 		public void ToggleTagEditWindowAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			TagController.InitContainer();
 			DoTagEdit();
 		}
 		
 		public void ToggleLatencyPanelAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ToggleLatencyWindow();
 		}
 		
 		public void EditCustomDifficultyAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			DoCustomDiffEdit();
 		}
 		
 		public void ToggleCenterCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			SwitchRenderCamera(0);
 		}
 		
 		public void ToggleLeftViewCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			SwitchRenderCamera(1);
 		}
 		
 		public void ToggleRightViewCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			SwitchRenderCamera(2);
 		}
 		
 		public void ToggleFreeViewCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			SwitchRenderCamera(3);
 		}
 		
 		public void RotateFreeViewCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			// See MoveCamera.cs
 		}
 		
 		public void ResetFreeViewCameraAction(){
-			if(PromtWindowOpen || helpWindowOpen) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen) return;
 			// See MoveCamera.cs
 		}
 		
 		public void AdjustFreeCameraPanningLeftAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See MoveCamera.cs
 		}
 		
 		public void AdjustFreeCameraPanningRightAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See MoveCamera.cs
 		}
 		
 		public void AdjustFreeCameraPanningUpAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See MoveCamera.cs
 		}
 		
 		public void AdjustFreeCameraPanningDownAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// See MoveCamera.cs
 		}
 		
 		public void ExportJSONAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			ExportToJSON();	
 		}
 		
 		public void ToggleAutosaveAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			UpdateAutoSaveAction();
 		}
 		
 		public void ToggleVsyncAction(){
-			if(helpWindowOpen) return;
+			if(helpWindowOpen || colorPickerWindowOpen) return;
 			ToggleVsycn();
 		}
 		
 		public void ToggleProductionModeAction(){
-			if(PromtWindowOpen || helpWindowOpen || IsPlaying) return;
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CurrentChart.ProductionMode = !CurrentChart.ProductionMode;
 			m_diplaySongName.SetText(CurrentChart.ProductionMode ? CurrentChart.Name : (CurrentChart.Name + " - Draft Mode"));
 			if (CurrentChart.ProductionMode) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, "Draft mode disabled; player scores will be recorded!");
@@ -5373,6 +5410,7 @@ namespace MiKu.NET {
         GameObject AddNoteGameObjectToScene(Note noteData, float _beatTime = 0) {
             // And add the note game object to the screen
             GameObject noteGO = GameObject.Instantiate(GetNoteMarkerByType(noteData.Type));
+			Track.SetNoteColorByType(noteGO, noteData.Type);
             noteGO.transform.localPosition = new Vector3(
                                                 noteData.Position[0], 
                                                 noteData.Position[1], 
@@ -5419,6 +5457,7 @@ namespace MiKu.NET {
 
             for(int i = 0; i < noteData.Segments.GetLength(0); ++i) {
                 GameObject noteGO = GameObject.Instantiate(GetNoteMarkerByType(noteData.Type, true));
+				Track.SetNoteColorByType(noteGO, noteData.Type);
                 noteGO.transform.localPosition = new Vector3(
                     noteData.Segments[i, 0],
                     noteData.Segments[i, 1],
@@ -5789,6 +5828,7 @@ namespace MiKu.NET {
             // add segment object to the scene
             // add the note game object to the screen
             GameObject noteGO = GameObject.Instantiate(GetNoteMarkerByType(workingLongNote.note.Type, true));
+			Track.SetNoteColorByType(noteGO, workingLongNote.note.Type);
             noteGO.transform.localPosition = note.transform.position;
             noteGO.transform.rotation =	Quaternion.identity;
             noteGO.transform.localScale *= m_NoteSegmentMarkerRedution;
@@ -5806,6 +5846,7 @@ namespace MiKu.NET {
 			else historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySegment, true, workingLongNote.note.Type, RoundToThird(GetBeatMeasureByTime(CurrentTime)), new float[] {note.transform.position.x, note.transform.position.y, note.transform.position.z}, new float[,] {}));
             if(isOnMirrorMode) {
                 GameObject mirroredNoteGO = GameObject.Instantiate(GetNoteMarkerByType(GetMirroreNoteMarkerType(workingLongNote.note.Type), true));
+				Track.SetNoteColorByType(mirroredNoteGO, GetMirroreNoteMarkerType(workingLongNote.note.Type));
                 Vector3 mirrorPosition = GetMirrorePosition(note.transform.position);
 				mirroredNoteGO.transform.localPosition = mirrorPosition;
 				//mirroredNoteGO.transform.localPosition = GetMirrorePosition(note.transform.position);
@@ -7102,16 +7143,84 @@ namespace MiKu.NET {
         /// </summary>
         /// <returns>Returns <typeparamref name="GameObject"/></returns>
         public static GameObject GetSelectedNoteMarker() {
-            return GameObject.Instantiate(s_instance.GetNoteMarkerByType(s_instance.selectedNoteType), Vector3.zero, Quaternion.identity);
+			GameObject noteMarker = GameObject.Instantiate(s_instance.GetNoteMarkerByType(s_instance.selectedNoteType), Vector3.zero, Quaternion.identity);
+			Track.SetNoteColorByType(noteMarker, s_instance.selectedNoteType);
+			return noteMarker;
+            //return GameObject.Instantiate(s_instance.GetNoteMarkerByType(s_instance.selectedNoteType), Vector3.zero, Quaternion.identity);
         }
+		
+		/// <summary>
+        /// Set the <typeparamref name="Color"/> for the note of the specified type
+        /// </summary>
+		public static void SetNoteColorByType(GameObject _noteGO, Note.NoteType _noteType){
+			if(_noteGO == null){
+				Debug.Log("Error finding note GameObject during color change!");
+				return;
+			}
+			Color noteColor = Track.GetNoteColorByType(_noteType);
+			foreach(MeshRenderer _meshRenderer in _noteGO.GetComponentsInChildren<MeshRenderer>()) {
+				_meshRenderer.material.SetColor("_Color", noteColor);
+				_meshRenderer.material.SetColor("_EmissionColor", noteColor);
+			}
+			foreach(LineRenderer _lineRenderer in _noteGO.GetComponentsInChildren<LineRenderer>()) {
+				_lineRenderer.material.SetColor("_Color", noteColor);
+				_lineRenderer.material.SetColor("_EmissionColor", noteColor);
+			}
+		}
+		
+		/// <summary>
+        /// Get the <typeparamref name="Color"/> for the note of the specified type
+        /// </summary>
+        /// <returns>Returns <typeparamref name="Color"/></returns>
+		public static Color GetNoteColorByType(Note.NoteType _noteType){
+			switch(_noteType) {
+                case Note.NoteType.LeftHanded:
+                    return LeftHandColor;
+                case Note.NoteType.RightHanded:
+                    return RightHandColor;
+                case Note.NoteType.BothHandsSpecial:
+                    return TwoHandColor;
+            }
+            return OneHandColor;
+		}
+		
+		/// <summary>
+        /// Set note colors and update all existing notes
+        /// </summary>
+		public static void SetCustomNoteColors(Color _leftHandColor, Color _rightHandColor, Color _oneHandColor, Color _twoHandColor){
+			LeftHandColor = _leftHandColor;
+			RightHandColor = _rightHandColor;
+			OneHandColor = _oneHandColor;
+			TwoHandColor = _twoHandColor;
+			foreach(Image _image in s_instance.m_RightSideBarLeftHandNoteComposite.GetComponentsInChildren<Image>()) _image.color = LeftHandColor;
+			foreach(Image _image in s_instance.m_RightSideBarRightHandNoteComposite.GetComponentsInChildren<Image>()) _image.color = RightHandColor;
+			foreach(Image _image in s_instance.m_RightSideBarOneHandNoteComposite.GetComponentsInChildren<Image>()) _image.color = OneHandColor;
+			foreach(Image _image in s_instance.m_RightSideBarTwoHandNoteComposite.GetComponentsInChildren<Image>()) _image.color = TwoHandColor;
+			Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
+			if(workingTrack != null) {
+				List<Note> allNotes = workingTrack.Values.Where(x => x != null).SelectMany(x => x).ToList();
+				foreach(Note _note in allNotes) Track.SetNoteColorByType(GameObject.Find(_note.Id), _note.Type);
+			}
+			PlayerPrefs.SetString("LeftHandColor", ColorUtility.ToHtmlStringRGB(LeftHandColor));
+			PlayerPrefs.SetString("RightHandColor", ColorUtility.ToHtmlStringRGB(RightHandColor));
+			PlayerPrefs.SetString("OneHandColor", ColorUtility.ToHtmlStringRGB(OneHandColor));
+			PlayerPrefs.SetString("TwoHandColor", ColorUtility.ToHtmlStringRGB(TwoHandColor));
+			s_instance.notesArea.ResetHistoryCircleColor(LeftHandColor, RightHandColor, OneHandColor, TwoHandColor);
+			s_instance.ToggleLastNoteShadowAction();
+			s_instance.ToggleLastNoteShadowAction();
+		}
 
         /// <summary>
         /// Get the <typeparamref name="GameObject"/> instance for the mirrored normal note to place
         /// </summary>
         /// <returns>Returns <typeparamref name="GameObject"/></returns>
         public static GameObject GetMirroredNoteMarker() {
-            Note.NoteType targedMirrored =  s_instance.selectedNoteType == Note.NoteType.LeftHanded ? Note.NoteType.RightHanded : Note.NoteType.LeftHanded;
-            return GameObject.Instantiate(s_instance.GetNoteMarkerByType(targedMirrored), Vector3.zero, Quaternion.identity);
+			Note.NoteType targedMirrored =  s_instance.selectedNoteType == Note.NoteType.LeftHanded ? Note.NoteType.RightHanded : Note.NoteType.LeftHanded;
+			GameObject noteMarker = GameObject.Instantiate(s_instance.GetNoteMarkerByType(targedMirrored), Vector3.zero, Quaternion.identity);
+			Track.SetNoteColorByType(noteMarker, targedMirrored);
+			return noteMarker;
+            //Note.NoteType targedMirrored =  s_instance.selectedNoteType == Note.NoteType.LeftHanded ? Note.NoteType.RightHanded : Note.NoteType.LeftHanded;
+            //return GameObject.Instantiate(s_instance.GetNoteMarkerByType(targedMirrored), Vector3.zero, Quaternion.identity);
         }
 
         public static Note.NoteType GetMirroreNoteMarkerType(Note.NoteType tocheck) {
@@ -9628,6 +9737,19 @@ namespace MiKu.NET {
                 s_instance.helpWindowOpen = value;
             }
         }
+		
+		public static bool ColorPickerWindowOpen
+        {
+            get
+            {
+                return s_instance.colorPickerWindowOpen;
+            }
+
+            set
+            {
+                s_instance.colorPickerWindowOpen = value;
+            }
+        }
 
         public static bool IsOnMirrorMode
         {
@@ -9700,6 +9822,58 @@ namespace MiKu.NET {
             get
             {
                 return Track.MEASURE_CHECK_TOLERANCE;
+            }
+        }
+		
+		public static Color LeftHandColor
+        {
+            get
+            {
+                return s_instance.leftHandColor;
+            }
+
+            set
+            {
+                s_instance.leftHandColor = value;
+            }
+        }
+		
+		public static Color RightHandColor
+        {
+            get
+            {
+                return s_instance.rightHandColor;
+            }
+
+            set
+            {
+                s_instance.rightHandColor = value;
+            }
+        }
+		
+		public static Color OneHandColor
+        {
+            get
+            {
+                return s_instance.oneHandColor;
+            }
+
+            set
+            {
+                s_instance.oneHandColor = value;
+            }
+        }
+		
+		public static Color TwoHandColor
+        {
+            get
+            {
+                return s_instance.twoHandColor;
+            }
+
+            set
+            {
+                s_instance.twoHandColor = value;
             }
         }
         #endregion
