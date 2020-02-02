@@ -1230,9 +1230,14 @@ namespace MiKu.NET {
 			}
 
 			if(Input.GetKeyDown(KeyCode.F12) && !PromtWindowOpen && !IsPlaying) {
-				if(isCTRLDown) {
-					ToggleAdminMode();
-				}             			
+				if(isCTRLDown && isALTDown) {
+					Serializer.s_instance.IsAdminMode = !Serializer.s_instance.IsAdminMode;
+                    Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, 
+                        string.Format("Admin mode is {0}", Serializer.s_instance.IsAdminMode)
+                    );
+				} else if( isCTRLDown && !isALTDown) {
+                    ToggleAdminMode();
+                }             			
 			}
 
 			if(Controller.controller.IsKeyBindingPressed("ToggleSelectionAreaAction")) {
@@ -2656,8 +2661,8 @@ namespace MiKu.NET {
         /// <summary>
         /// Send view to end time
         ///</summary>
-        public void GoToEndTime() {
-            float measure = GetTimeByMeasure(GetCloseStepMeasure(trackDuration * MS));
+        public void GoToEndTime() {            
+            float measure = GetBeatMeasureByTime(GetCloseStepMeasure(trackDuration * MS));
             JumpToMeasure(measure);
         }
 
@@ -2933,6 +2938,10 @@ namespace MiKu.NET {
 
             if(CurrentChart.Track.Custom.Count > 0) {
                 trackInfo.supportedDifficulties[5] = "Custom";
+            }
+
+            if(!Serializer.IsAdmin()) {
+                CurrentChart.IsAdminOnly = false;
             }
 
             trackInfo.bpm = CurrentChart.BPM;
