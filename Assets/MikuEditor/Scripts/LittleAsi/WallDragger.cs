@@ -12,8 +12,11 @@ public class WallDragger : MonoBehaviour {
 	public Camera activatedCamera;
 	public GridManager gridManager;
 	public NotesArea notesArea;
+	[SerializeField] private int rotationIncrement;
+	
 	private EditorWall selectedWall = new EditorWall();
 	private float[] originWallPosition = new float[] {0, 0, 0};
+	private float originWallZRot = 0f;
 	private bool isDragging = false;
 	private static Vector3 mouseWallOffset = Vector3.zero;
 
@@ -23,6 +26,20 @@ public class WallDragger : MonoBehaviour {
 			Vector3 adjustedPos = mousePos-mouseWallOffset;
 			if (notesArea.SnapToGrip) adjustedPos = gridManager.GetNearestPointOnGrid(adjustedPos);
 			selectedWall.wallGO.transform.position = new Vector3(adjustedPos.x, adjustedPos.y, selectedWall.wallGO.transform.position.z);
+
+			if (!selectedWall.isCrouch) {
+				Vector3 currentRot = selectedWall.wallGO.transform.GetChild(0).eulerAngles;
+				
+				if (Input.GetKeyDown(KeyCode.Q)) {
+					selectedWall.wallGO.transform.GetChild(0).eulerAngles = new Vector3(currentRot.x, currentRot.y, currentRot.z + rotationIncrement);
+
+				} else if (Input.GetKeyDown(KeyCode.E)) {
+					selectedWall.wallGO.transform.GetChild(0).eulerAngles = new Vector3(currentRot.x, currentRot.y, currentRot.z - rotationIncrement);
+				}
+			}
+			
+			
+			
 			if (selectedWall.exists && Input.GetMouseButtonUp(0)) {
 				EndCurrentDrag();
 			}
@@ -32,17 +49,21 @@ public class WallDragger : MonoBehaviour {
 	public void StartNewDrag() {
 		selectedWall = WallUnderMouse(activatedCamera, wallsLayer);
 		originWallPosition = selectedWall.getPosition();
+		originWallZRot = selectedWall.getZRotation();
 		isDragging = true;
-	}
+	}	
 
 	private void EndCurrentDrag() {
 		if (!selectedWall.exists) return;
 		Vector3 finalPos = selectedWall.wallGO.transform.position;
-		selectedWall.setPosition(new float[3] {finalPos.x, finalPos.y, finalPos.z});
-		Track.FinalizeWallDrag(selectedWall.time, selectedWall.getType(), originWallPosition, selectedWall.getPosition());
+		Vector3 finalRot = selectedWall.wallGO.transform.GetChild(0).eulerAngles;
+		selectedWall.setPositionRotation(new float[3] {finalPos.x, finalPos.y, finalPos.z}, finalRot.z);
+		
+		Track.FinalizeWallDrag(selectedWall.time, selectedWall.getType(), originWallPosition, selectedWall.getPosition(), originWallZRot, selectedWall.getZRotation());
 		Track.HistoryChangeDragWall(selectedWall.getType(), selectedWall.time, originWallPosition, selectedWall.getPosition());
 		selectedWall = new EditorWall();
 		originWallPosition = new float[] {0, 0, 0};
+		originWallZRot = 0f;
 		mouseWallOffset = Vector3.zero;
 		isDragging = false;
 	}
@@ -128,14 +149,19 @@ public class EditorWall {
 		else return Note.NoteType.NoHand;
 	}
 	
-	public void setPosition(float[] _pos){
+	public void setPositionRotation(float[] _pos, float zRot){
 		if (isCrouch && crouch.initialized){
 			crouch.position = _pos;
+			//crouch.zRotation = zRot;
 			wallGO.transform.position = new Vector3 (_pos[0], _pos[1], _pos[2]);
+			//wallGO.transform.GetChild(0).eulerAngles = new Vector3(0f, 0f, zRot);
+			
 		}
 		else if (slide.initialized){
 			slide.position = _pos;
+			slide.zRotation = zRot;
 			wallGO.transform.position = new Vector3 (_pos[0], _pos[1], _pos[2]);
+			wallGO.transform.GetChild(0).eulerAngles = new Vector3(0f, 0f, zRot);
 		}
 	}
 	
@@ -143,5 +169,10 @@ public class EditorWall {
 		if (isCrouch && crouch.initialized) return crouch.position;
 		else if (slide.initialized)return slide.position;
 		else return new float[] {};
+	}
+	public float getZRotation() {
+		if (isCrouch && crouch.initialized) return 90f;
+		else if (slide.initialized) return slide.zRotation;
+		else return 0f;
 	}
 }
