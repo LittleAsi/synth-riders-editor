@@ -3278,7 +3278,7 @@ namespace MiKu.NET {
 							pasteSlide.position[0]*=-1;
                         }
 						History.changingHistory = true;
-                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlide.slideType), pasteSlide.position, true);
+                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlide.slideType), pasteSlide.position, true, false, pasteSlide.zRotation);
 						History.changingHistory = false;
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlide.slideType, CurrentSelectedMeasure, pasteSlide.position, new float[,] {}));
                     }
