@@ -7581,7 +7581,15 @@ namespace MiKu.NET {
                 }
                 
                 if(turnOff) {
-                    note.GetComponent<MeshRenderer>().enabled = false;
+                    MeshRenderer meshRend = note.GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = note.GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.enabled = false;
+                    }
+                    
                     /* GameObject highlighter = s_instance.GetHighlighter(searchName);
                     if(highlighter) {
                         highlighter.SetActive(false);
@@ -7612,7 +7620,15 @@ namespace MiKu.NET {
                     directionWrap.gameObject.SetActive(true);
                 }
                 if(turnOn) {
-                    note.GetComponent<MeshRenderer>().enabled = true;
+                    MeshRenderer meshRend = note.GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = note.GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.enabled = true;
+                    }
+                    
                 } else {
                     if(note.transform.localScale.x < MAX_NOTE_RESIZE) {
                         note.transform.localScale = note.transform.localScale / s_instance.m_CameraNearReductionFactor;	
@@ -8812,7 +8828,15 @@ namespace MiKu.NET {
         void ResetResizedList() {
             for(int i = 0; i < resizedNotes.Count; ++i) {
                 if(resizedNotes[i] != null) {
-                    resizedNotes[i].GetComponent<MeshRenderer>().enabled = true;
+                    MeshRenderer meshRend = resizedNotes[i].GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = resizedNotes[i].GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.GetComponent<MeshRenderer>().enabled = true;
+                    }
+                    
                     // resizedNotes[i].transform.localScale = resizedNotes[i].transform.localScale / m_CameraNearReductionFactor;
                     Transform directionWrap = resizedNotes[i].transform.parent.Find("DirectionWrap");
                     if(directionWrap != null) {
