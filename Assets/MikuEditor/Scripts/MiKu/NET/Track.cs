@@ -1230,9 +1230,14 @@ namespace MiKu.NET {
 			}
 
 			if(Input.GetKeyDown(KeyCode.F12) && !PromtWindowOpen && !IsPlaying) {
-				if(isCTRLDown) {
-					ToggleAdminMode();
-				}             			
+				if(isCTRLDown && isALTDown) {
+					Serializer.s_instance.IsAdminMode = !Serializer.s_instance.IsAdminMode;
+                    Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, 
+                        string.Format("Admin mode is {0}", Serializer.s_instance.IsAdminMode)
+                    );
+				} else if( isCTRLDown && !isALTDown) {
+                    ToggleAdminMode();
+                }             			
 			}
 
 			if(Controller.controller.IsKeyBindingPressed("ToggleSelectionAreaAction")) {
@@ -2656,8 +2661,8 @@ namespace MiKu.NET {
         /// <summary>
         /// Send view to end time
         ///</summary>
-        public void GoToEndTime() {
-            float measure = GetTimeByMeasure(GetCloseStepMeasure(trackDuration * MS));
+        public void GoToEndTime() {            
+            float measure = GetBeatMeasureByTime(GetCloseStepMeasure(trackDuration * MS));
             JumpToMeasure(measure);
         }
 
@@ -2933,6 +2938,10 @@ namespace MiKu.NET {
 
             if(CurrentChart.Track.Custom.Count > 0) {
                 trackInfo.supportedDifficulties[5] = "Custom";
+            }
+
+            if(!Serializer.IsAdmin()) {
+                CurrentChart.IsAdminOnly = false;
             }
 
             trackInfo.bpm = CurrentChart.BPM;
@@ -3269,7 +3278,7 @@ namespace MiKu.NET {
 							pasteSlide.position[0]*=-1;
                         }
 						History.changingHistory = true;
-                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlide.slideType), pasteSlide.position, true);
+                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlide.slideType), pasteSlide.position, true, false, pasteSlide.zRotation);
 						History.changingHistory = false;
 						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlide.slideType, CurrentSelectedMeasure, pasteSlide.position, new float[,] {}));
                     }
@@ -4991,7 +5000,7 @@ namespace MiKu.NET {
 			List<Crouch> crouchs = GetCurrentCrouchListByDifficulty();
             if(crouchs != null && crouchs.Count > 0) {
                 for(int i = 0; i < crouchs.Count; ++i) {
-                    AddMovementGameObjectToScene(crouchs[i].time, crouchs[i].position,  CROUCH_TAG);
+                    AddMovementGameObjectToScene(crouchs[i].time, crouchs[i].position,  CROUCH_TAG, 90f);
                 }
             }
 
@@ -4999,7 +5008,7 @@ namespace MiKu.NET {
             List<Slide> slides = GetCurrentMovementListByDifficulty();
             if(slides != null && slides.Count > 0) {
                 for(int i = 0; i < slides.Count; ++i) {
-                    AddMovementGameObjectToScene(slides[i].time, slides[i].position, GetSlideTagByType(slides[i].slideType));
+                    AddMovementGameObjectToScene(slides[i].time, slides[i].position, GetSlideTagByType(slides[i].slideType), slides[i].zRotation);
                 }
             }
 
@@ -5577,14 +5586,18 @@ namespace MiKu.NET {
         /// </summary>
         /// <param name="ms">The time in with the GameObect will be positioned</param>
         /// <param name="_pos">The x and y positions in with the GameObect will be positioned, ignoring z for ms</param>
-        GameObject AddMovementGameObjectToScene(float ms, float[] _pos, string MovementTag) {
+        GameObject AddMovementGameObjectToScene(float ms, float[] _pos, string MovementTag, float zRot = 0f) {
             GameObject movementToInst;
+            
+            
+            
             switch(MovementTag) {
                 case JUMP_TAG:
                     movementToInst = s_instance.m_JumpElement;
                     break;
                 case CROUCH_TAG:
                     movementToInst = s_instance.m_CrouchElement;
+                    zRot = 90f;
                     break;
                 case SLIDE_CENTER_TAG:
                     movementToInst = s_instance.m_SlideCenterElement;
@@ -5612,8 +5625,10 @@ namespace MiKu.NET {
                                                 _pos[1], 
                                                 Track.GetUnitByMeasure(ms)
                                             );
-            moveSectGO.transform.rotation =	Quaternion.identity;
+            //moveSectGO.transform.rotation =	Quaternion.identity;
+            moveSectGO.transform.GetChild(0).eulerAngles = new Vector3(0f, 0f, zRot);
             moveSectGO.transform.parent = s_instance.m_NoNotesElementHolder;
+            
             moveSectGO.name = s_instance.GetMovementIdFormated(ms, MovementTag);
             return moveSectGO;
         }	
@@ -6586,7 +6601,7 @@ namespace MiKu.NET {
 		/// <summary>
         /// Move a wall to a new space
         /// </summary>
-		public static void FinalizeWallDrag(float _beat, Note.NoteType _type, float[] _originPos, float[] _finalPos){
+		public static void FinalizeWallDrag(float _beat, Note.NoteType _type, float[] _originPos, float[] _finalPos, float _ogZRot, float _finalZRot){
 			string moveTag;
 			if(_type==Note.NoteType.NoHand){ // Crouch
 				List<Crouch> workingCrouches = s_instance.GetCurrentCrouchListByDifficulty();
@@ -6602,8 +6617,8 @@ namespace MiKu.NET {
 			float currentBeatBackup = CurrentSelectedMeasure;
 			CurrentSelectedMeasure = _beat;
 			History.changingHistory = true;
-			ToggleMovementSectionToChart(moveTag, _originPos, true);
-			ToggleMovementSectionToChart(moveTag, _finalPos, true);
+			ToggleMovementSectionToChart(moveTag, _originPos, true, false, _ogZRot);
+			ToggleMovementSectionToChart(moveTag, _finalPos, true, false, _finalZRot);
 			History.changingHistory = false;
 		}
 		
@@ -7566,7 +7581,15 @@ namespace MiKu.NET {
                 }
                 
                 if(turnOff) {
-                    note.GetComponent<MeshRenderer>().enabled = false;
+                    MeshRenderer meshRend = note.GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = note.GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.enabled = false;
+                    }
+                    
                     /* GameObject highlighter = s_instance.GetHighlighter(searchName);
                     if(highlighter) {
                         highlighter.SetActive(false);
@@ -7597,7 +7620,15 @@ namespace MiKu.NET {
                     directionWrap.gameObject.SetActive(true);
                 }
                 if(turnOn) {
-                    note.GetComponent<MeshRenderer>().enabled = true;
+                    MeshRenderer meshRend = note.GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = note.GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.enabled = true;
+                    }
+                    
                 } else {
                     if(note.transform.localScale.x < MAX_NOTE_RESIZE) {
                         note.transform.localScale = note.transform.localScale / s_instance.m_CameraNearReductionFactor;	
@@ -7817,9 +7848,9 @@ namespace MiKu.NET {
 		}
 
         /// <summary>
-        /// Toggle walls for the current time, now with positions
+        /// Toggle walls for the current time, now with positions (and zrot)
         /// </summary>
-        public static void ToggleMovementSectionToChart(string MoveTAG, float[] _pos, bool isOverwrite = false, bool forcePlacement = false) {
+        public static void ToggleMovementSectionToChart(string MoveTAG, float[] _pos, bool isOverwrite = false, bool forcePlacement = false, float zRot = 0f) {
             if(PromtWindowOpen || IsPlaying) return;
             if(s_instance.GetTimeByMeasure(CurrentSelectedMeasure) < MIN_NOTE_START * MS) {
                 Miku_DialogManager.ShowDialog(
@@ -7902,6 +7933,7 @@ namespace MiKu.NET {
 					Crouch crouch = new Crouch();
 					crouch.time = CurrentSelectedMeasure;
 					crouch.position = finalPos;
+					//crouch.zRotation = zRot;
 					crouch.initialized = true;
 					workingElementVert.Add(crouch);	
 				}
@@ -7909,12 +7941,13 @@ namespace MiKu.NET {
 					Slide slide = new Slide();
 					slide.time = CurrentSelectedMeasure;
 					slide.position = finalPos;
+					slide.zRotation = zRot;
 					slide.initialized = true;
 					slide.slideType = GetSlideTypeByTag(MoveTAG);
 					workingElementHorz.Add(slide);	
 				}
 				historyEvent.Add(new HistoryChange(historyType, true, historySubType, CurrentSelectedMeasure, finalPos, new float[,] {}));
-				s_instance.AddMovementGameObjectToScene(CurrentSelectedMeasure, finalPos, MoveTAG);
+				s_instance.AddMovementGameObjectToScene(CurrentSelectedMeasure, finalPos, MoveTAG, zRot);
 				if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, onText);
 			}	
 			historyEvent.Report();
@@ -8795,7 +8828,15 @@ namespace MiKu.NET {
         void ResetResizedList() {
             for(int i = 0; i < resizedNotes.Count; ++i) {
                 if(resizedNotes[i] != null) {
-                    resizedNotes[i].GetComponent<MeshRenderer>().enabled = true;
+                    MeshRenderer meshRend = resizedNotes[i].GetComponent<MeshRenderer>();
+                    if(meshRend == null) {
+                        meshRend = resizedNotes[i].GetComponentInChildren<MeshRenderer>();
+                    }
+
+                    if(meshRend != null) {
+                        meshRend.GetComponent<MeshRenderer>().enabled = true;
+                    }
+                    
                     // resizedNotes[i].transform.localScale = resizedNotes[i].transform.localScale / m_CameraNearReductionFactor;
                     Transform directionWrap = resizedNotes[i].transform.parent.Find("DirectionWrap");
                     if(directionWrap != null) {

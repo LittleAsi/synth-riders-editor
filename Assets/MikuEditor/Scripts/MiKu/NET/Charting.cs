@@ -254,6 +254,7 @@ namespace MiKu.NET.Charting {
     public struct Crouch {
         public float time;
 		public float[] position;
+		//public float zRotation;
         public bool initialized;
     }    
 	
@@ -298,6 +299,7 @@ namespace MiKu.NET.Charting {
         public float time;
         public Note.NoteType slideType;
 		public float[] position;
+		public float zRotation;
         public bool initialized;
     }    
 

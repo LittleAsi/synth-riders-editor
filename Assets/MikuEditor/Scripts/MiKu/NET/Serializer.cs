@@ -22,7 +22,7 @@ namespace MiKu.NET {
     /// </sumary>
     public class Serializer : MonoBehaviour {
 
-        private static Serializer s_instance;
+        public static Serializer s_instance;
 
         public bool IsAdminMode = true;
 
@@ -408,12 +408,12 @@ namespace MiKu.NET {
                 
             }
             
-            if(ChartData.IsAdminOnly && !s_instance.IsAdminMode) {
+            /* if(ChartData.IsAdminOnly && !s_instance.IsAdminMode) {
                 Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Alert, StringVault.Alert_FileLoadNotAdmin);
                     ChartData = null;
                 IsBusy = false;
                 return false;
-            }
+            } */
 
             IsBusy = false;
             return true;
