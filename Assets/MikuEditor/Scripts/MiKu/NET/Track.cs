@@ -1319,6 +1319,16 @@ namespace MiKu.NET {
 			} else if (_editorWall != null && _editorWall.exists) JumpToMeasure(_editorWall.time);
 		}
 		
+		public void RotateWallClockwiseAction(){
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
+			// See Update() in WallDragger.cs;
+		}
+		
+		public void RotateWallCounterClockwiseAction(){
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
+			// See Update() in WallDragger.cs;
+		}
+		
 		public void RemoteDeleteAction(){
 			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			// Deletes clicked note or wall

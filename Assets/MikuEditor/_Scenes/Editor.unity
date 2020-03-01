@@ -6773,7 +6773,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0.000030517578, y: -596.93225}
+  m_AnchoredPosition: {x: 0.000030517578, y: -549.54004}
   m_SizeDelta: {x: 0, y: 1099.08}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &195132920
@@ -7899,8 +7899,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1011414273}
   m_HandleRect: {fileID: 1011414272}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 1
+  m_Value: 1
+  m_Size: 0.99999994
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -8851,8 +8851,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 248361475}
   m_HandleRect: {fileID: 248361474}
   m_Direction: 2
-  m_Value: 0
-  m_Size: 1
+  m_Value: 1
+  m_Size: 0.9103534
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -9719,6 +9719,50 @@ Canvas:
   m_SortingLayerID: 0
   m_SortingOrder: 0
   m_TargetDisplay: 0
+--- !u!1 &256703419
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 256703420}
+  - component: {fileID: 256703421}
+  m_Layer: 17
+  m_Name: '[WallDragCastHitChecker]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &256703420
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256703419}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 2121096073}
+  m_RootOrder: 3
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &256703421
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256703419}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 10, y: 10, z: 1}
+  m_Center: {x: 0, y: 0, z: 0}
 --- !u!1 &258588994
 GameObject:
   m_ObjectHideFlags: 0
@@ -11200,8 +11244,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 629322659}
   m_HandleRect: {fileID: 629322658}
   m_Direction: 2
-  m_Value: 1
-  m_Size: 0.9999998
+  m_Value: 0
+  m_Size: 0.99999994
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -13874,8 +13918,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1615870926}
   m_HandleRect: {fileID: 1615870925}
   m_Direction: 0
-  m_Value: 0
-  m_Size: 1
+  m_Value: 1
+  m_Size: 0.9999999
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -15280,7 +15324,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -14.999878, y: 0}
+  m_AnchoredPosition: {x: -15, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &405786498
@@ -27214,7 +27258,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -484.6922}
+  m_AnchoredPosition: {x: 0, y: -421.77567}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &666479835
@@ -30895,7 +30939,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1289462546}
   m_Direction: 2
   m_Value: 1
-  m_Size: 0.9486408
+  m_Size: 0.79503477
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -32409,7 +32453,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 409816940}
   m_Direction: 0
   m_Value: 1
-  m_Size: 1
+  m_Size: 0.99999994
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -38100,6 +38144,9 @@ MonoBehaviour:
   wallsLayer:
     serializedVersion: 2
     m_Bits: 16384
+  wallsDragCastLayer:
+    serializedVersion: 2
+    m_Bits: 131072
   gridLayer:
     serializedVersion: 2
     m_Bits: 2048
@@ -44755,7 +44802,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.00003969292}
+  m_AnchoredPosition: {x: 0, y: 0.000034786462}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!114 &1161121330
@@ -69517,8 +69564,8 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 78792925}
   m_HandleRect: {fileID: 78792924}
   m_Direction: 2
-  m_Value: 0
-  m_Size: 0.5
+  m_Value: 1
+  m_Size: 0.9999975
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -77915,6 +77962,7 @@ Transform:
   - {fileID: 204771007}
   - {fileID: 311194296}
   - {fileID: 1079324248}
+  - {fileID: 256703420}
   m_Father: {fileID: 260409145}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -78205,7 +78253,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 1189119118}
   m_Direction: 0
   m_Value: 0
-  m_Size: 0.99999976
+  m_Size: 0.9999999
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
