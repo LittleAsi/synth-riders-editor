@@ -67,6 +67,8 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("AddNoteAction", "Place a Note/Wall on the Grid", "Mouse0", false, false, false, "None", false, false, false);
 		CreateKeyBinding("DragSnapObjectAction", "Drag Note/Wall or Snap Note/Wall to Grid", "Mouse0", false, true, false, "None", false, false, false, true);
 		CreateKeyBinding("SnapGridToObjectAction", "Snap Grid to Note/Wall", "Mouse1", false, true, false, "None", false, false, false, true);
+		CreateKeyBinding("RotateWallClockwiseAction", "Rotate Wall Clockwise (During Drag)", "E", false, true, false, "None", false, false, false, true);
+		CreateKeyBinding("RotateWallCounterClockwiseAction", "Rotate Wall Counter-Clockwise (During Drag)", "Q", false, true, false, "None", false, false, false, true);
 		CreateKeyBinding("RemoteDeleteAction", "Remote Delete Note/Wall", "Mouse1", true, false, false, "None", false, false, false, true);
 		CreateKeyBinding("TogglePlayAction", "Toggle Play", "Space", false, false, false, "JoystickButton3", false, false, false);
 		CreateKeyBinding("TogglePlayReturnAction", "Toggle Play (Return)", "R", false, false, false, "Space", true, false, false);
@@ -407,7 +409,6 @@ public class Controller : MonoBehaviour {
 	}
 	
 	public bool GetKeyDown(string _actionMethodName){
-		// Only checks for main keys, not modifiers
 		KeyBinding keyBinding = keyBindings[_actionMethodName];
 		if((Input.GetKeyDown(keyBinding.keyCodes[0]) && (!isMod1Down^keyBinding.mods1[0]) && (!isMod2Down^keyBinding.mods2[0]) && (!isMod3Down^keyBinding.mods3[0])) || (Input.GetKeyDown(keyBinding.keyCodes[1]) && (!isMod1Down^keyBinding.mods1[1]) && (!isMod2Down^keyBinding.mods2[1]) && (!isMod3Down^keyBinding.mods3[1]))) return true;
 		else return false;

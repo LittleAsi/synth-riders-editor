@@ -8,17 +8,19 @@ using UnityEngine;
 
 public class WallDragger : MonoBehaviour {
 	public LayerMask wallsLayer;
+	public LayerMask wallsDragCastLayer;
 	public LayerMask gridLayer;
 	public Camera activatedCamera;
 	public GridManager gridManager;
 	public NotesArea notesArea;
-	[SerializeField] private int rotationIncrement;
+	public int rotationIncrement;
 	
 	private EditorWall selectedWall = new EditorWall();
 	private float[] originWallPosition = new float[] {0, 0, 0};
 	private float originWallZRot = 0f;
 	private bool isDragging = false;
 	private static Vector3 mouseWallOffset = Vector3.zero;
+	private float distanceWallToBeatTolerance = .001f;
 
 	private void Update() {
 		if (isDragging && selectedWall.exists) {
@@ -26,20 +28,16 @@ public class WallDragger : MonoBehaviour {
 			Vector3 adjustedPos = mousePos-mouseWallOffset;
 			if (notesArea.SnapToGrip) adjustedPos = gridManager.GetNearestPointOnGrid(adjustedPos);
 			selectedWall.wallGO.transform.position = new Vector3(adjustedPos.x, adjustedPos.y, selectedWall.wallGO.transform.position.z);
-
 			if (!selectedWall.isCrouch) {
 				Vector3 currentRot = selectedWall.wallGO.transform.GetChild(0).eulerAngles;
-				
-				if (Input.GetKeyDown(KeyCode.Q)) {
+				//if (Input.GetKeyDown(KeyCode.Q)) {
+				if (Controller.controller.GetKeyDown("RotateWallCounterClockwiseAction")){
 					selectedWall.wallGO.transform.GetChild(0).eulerAngles = new Vector3(currentRot.x, currentRot.y, currentRot.z + rotationIncrement);
-
-				} else if (Input.GetKeyDown(KeyCode.E)) {
+				//} else if (Input.GetKeyDown(KeyCode.E)) {
+				} else if (Controller.controller.GetKeyDown("RotateWallClockwiseAction")){
 					selectedWall.wallGO.transform.GetChild(0).eulerAngles = new Vector3(currentRot.x, currentRot.y, currentRot.z - rotationIncrement);
 				}
 			}
-			
-			
-			
 			if (selectedWall.exists && Input.GetMouseButtonUp(0)) {
 				EndCurrentDrag();
 			}
@@ -58,7 +56,6 @@ public class WallDragger : MonoBehaviour {
 		Vector3 finalPos = selectedWall.wallGO.transform.position;
 		Vector3 finalRot = selectedWall.wallGO.transform.GetChild(0).eulerAngles;
 		selectedWall.setPositionRotation(new float[3] {finalPos.x, finalPos.y, finalPos.z}, finalRot.z);
-		
 		Track.FinalizeWallDrag(selectedWall.time, selectedWall.getType(), originWallPosition, selectedWall.getPosition(), originWallZRot, selectedWall.getZRotation());
 		Track.HistoryChangeDragWall(selectedWall.getType(), selectedWall.time, originWallPosition, selectedWall.getPosition());
 		selectedWall = new EditorWall();
@@ -92,16 +89,17 @@ public class WallDragger : MonoBehaviour {
 		// Check for closer hits
 		for (int i = 0; i < hits.Length; i++) {
 			//Debug.Log("Hit wall name: " + hits[i].transform.gameObject.name);
+			//Debug.Log("hits[i].transform.position.z: " + hits[i].transform.position.z);
 			float distanceToCurrentBeat = Mathf.Abs(hits[i].transform.position.z-currentUnit);
 			// Check if hit is closer, filtering anything prior to the current beat (with small tolerance added to accomodate rounding issues)
-			if(distanceToCurrentBeat<lowestDistanceToCurrentBeat && (hits[i].transform.position.z+.001)>=currentUnit){
+			if(distanceToCurrentBeat<lowestDistanceToCurrentBeat && (hits[i].transform.position.z+distanceWallToBeatTolerance)>=currentUnit){
 				lowestDistanceToCurrentBeat = distanceToCurrentBeat;
 				hit = hits[i];
 			}
 		}
 		//Debug.Log("Chosen wall name: " + hit.transform.gameObject.name);
-		if ((hit.transform.position.z+.001)<currentUnit) return new EditorWall(); // If no hits were at or after the current beat, do nothing
-		Renderer rend = hit.transform.GetComponent<Renderer>();
+		//Debug.Log("hit.transform.position.z: " + hit.transform.position.z);
+		if ((hit.transform.position.z+distanceWallToBeatTolerance)<currentUnit) return new EditorWall(); // If no hits were at or after the current beat, do nothing
 		EditorWall draggableWall = new EditorWall();
 		draggableWall.wallGO = hit.transform.parent.gameObject;
 		mouseWallOffset = hit.point-draggableWall.wallGO.transform.position;
@@ -127,11 +125,11 @@ public class WallDragger : MonoBehaviour {
 	private Vector3 GetPosOnGridFromMouse() {
 		Ray ray = activatedCamera.ScreenPointToRay(Input.mousePosition);
 		RaycastHit hit;
-		if (Physics.Raycast(ray, out hit, 50f, (wallsLayer | gridLayer))) {
-			Vector3 pos = hit.point;
-			return pos;
+		Vector3 pos = new Vector3(0, 0, 0);
+		if (Physics.Raycast(ray, out hit, 50f, wallsDragCastLayer)) {
+			pos = hit.point;
 		}
-		return new Vector3(0, 0, 0);
+		return pos;
 	}
 }
 
@@ -152,10 +150,7 @@ public class EditorWall {
 	public void setPositionRotation(float[] _pos, float zRot){
 		if (isCrouch && crouch.initialized){
 			crouch.position = _pos;
-			//crouch.zRotation = zRot;
-			wallGO.transform.position = new Vector3 (_pos[0], _pos[1], _pos[2]);
-			//wallGO.transform.GetChild(0).eulerAngles = new Vector3(0f, 0f, zRot);
-			
+			wallGO.transform.position = new Vector3 (_pos[0], _pos[1], _pos[2]);			
 		}
 		else if (slide.initialized){
 			slide.position = _pos;
