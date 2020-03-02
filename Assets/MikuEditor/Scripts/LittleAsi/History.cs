@@ -20,7 +20,8 @@ namespace LittleAsi.History {
 		Note.NoteType, - Sub-type of the object changed, e.g. note type, slide type; any Note.NoteType value is fine if there are no varieties of the object type
 		float, - Beat - The beat measure associated with the state (primary timing indicator)
 		float[], - Position - array of floats indicating the X, Y, and Z position of the object; Z is sometimes used to calculate time
-		float[,] - Segments - two dimensional array of floats indicating the positions of any rail nodes; can be an empty array if the object isn't a note with associated segments
+		float[,], - Segments - two dimensional array of floats indicating the positions of any rail nodes; can be an empty array if the object isn't a note with associated segments
+		float[] - Rotation - Optional - array of floats indicating the X, Y, and Z rotation of the objects; currently only Z is used (wall rotation)
 	));
 	
 	Once all changes have been completed, add the HistoryEvent to the History:
@@ -41,6 +42,7 @@ namespace LittleAsi.History {
 		public float[] Position { get; set; }
 		public bool Added { get; set; }
 		public float[,] Segments  {get; set; }
+		public float[] Rotation { get; set; }
 
 		public HistoryChange(History.HistoryObjectType _type, bool _added, Note.NoteType _subType, float _beat, float[] _pos, float[,] _segments) {
 			Type = _type; // Note, segment, slider, etc.
@@ -49,6 +51,19 @@ namespace LittleAsi.History {
 			Beat = _beat;
 			Position = _pos;
 			Segments = _segments;
+			Rotation = new float[] {0f, 0f, 0f};
+			if(_type==History.HistoryObjectType.HistoryCrouch) Rotation = new float[] {0f, 0f, 90f};
+			//Debug.Log("New HistoryChange");
+		}
+		
+		public HistoryChange(History.HistoryObjectType _type, bool _added, Note.NoteType _subType, float _beat, float[] _pos, float[,] _segments, float[] _rot) {
+			Type = _type; // Note, segment, slider, etc.
+			Added = _added; // True if this event is describing a post state object; false if describing original state 
+			SubType = _subType; // Note type, slider type, etc.
+			Beat = _beat;
+			Position = _pos;
+			Segments = _segments;
+			Rotation = _rot;
 			//Debug.Log("New HistoryChange");
 		}
 		
