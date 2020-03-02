@@ -57,7 +57,7 @@ public class WallDragger : MonoBehaviour {
 		Vector3 finalRot = selectedWall.wallGO.transform.GetChild(0).eulerAngles;
 		selectedWall.setPositionRotation(new float[3] {finalPos.x, finalPos.y, finalPos.z}, finalRot.z);
 		Track.FinalizeWallDrag(selectedWall.time, selectedWall.getType(), originWallPosition, selectedWall.getPosition(), originWallZRot, selectedWall.getZRotation());
-		Track.HistoryChangeDragWall(selectedWall.getType(), selectedWall.time, originWallPosition, selectedWall.getPosition());
+		Track.HistoryChangeDragWall(selectedWall.getType(), selectedWall.time, originWallPosition, new float[] {0f, 0f, originWallZRot}, selectedWall.getPosition(), new float[] {0f, 0f, selectedWall.getZRotation()});
 		selectedWall = new EditorWall();
 		originWallPosition = new float[] {0, 0, 0};
 		originWallZRot = 0f;
