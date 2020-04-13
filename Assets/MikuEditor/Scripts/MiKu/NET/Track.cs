@@ -13,6 +13,7 @@ using MiKu.NET.Utils;
 using Newtonsoft.Json;
 using Shogoki.Utils;
 using LittleAsi.History;
+using LittleAsi.SelectionOptions;
 using ThirdParty.Custom;
 using TMPro;
 using UnityEngine;
@@ -569,6 +570,9 @@ namespace MiKu.NET {
 		
 		[SerializeField]
         private Animator m_KeyBindingWindowAnimator;
+		
+		[SerializeField] 
+		private Animator m_SelectionWindowAnimator;
 
         [SerializeField]
         private Animator m_SaveLoaderAnimator;
@@ -939,7 +943,21 @@ namespace MiKu.NET {
 		private Color oneHandColor;
 		private Color twoHandColor;
 		
-
+		// For selection optons
+		[HideInInspector] public bool leftHandNoteSelected = true;
+		[HideInInspector] public bool rightHandNoteSelected = true;
+		[HideInInspector] public bool oneHandSpecialNoteSelected = true;
+		[HideInInspector] public bool twoHandSpecialNoteSelected = true;
+		[HideInInspector] public bool leftWallSelected = true;
+		[HideInInspector] public bool rightWallSelected = true;
+		[HideInInspector] public bool leftAngleWallSelected = true;
+		[HideInInspector] public bool rightAngleWallSelected = true;
+		[HideInInspector] public bool centerWallSelected = true;
+		[HideInInspector] public bool crouchWallSelected = true;
+		[HideInInspector] public bool pasteDeletesExistingRange = true;
+		[HideInInspector] public bool pastePrioritizesExisting = false;
+		[HideInInspector] public bool pastePrioritizesPasted = false;
+		
         // Use this for initialization
         void Awake () {	
             // Initilization of the Game Object to use for the line drawing
@@ -3056,6 +3074,23 @@ namespace MiKu.NET {
             ShowPromtWindow(StringVault.Promt_CopyAllNotes);
         }
 
+		private bool CheckNoteTypeSelectionEnabled(Note.NoteType _type){
+			if(leftHandNoteSelected && _type == Note.NoteType.LeftHanded) return true;
+			else if(rightHandNoteSelected && _type == Note.NoteType.RightHanded) return true;
+			else if(oneHandSpecialNoteSelected && _type == Note.NoteType.OneHandSpecial) return true;
+			else if(twoHandSpecialNoteSelected && _type == Note.NoteType.BothHandsSpecial) return true;
+			else return false;
+		}
+		
+		private bool CheckWallTypeSelectionEnabled(Note.NoteType _type){
+			if(leftWallSelected && _type == Note.NoteType.LeftHanded) return true;
+			else if(rightWallSelected && _type == Note.NoteType.RightHanded) return true;
+			else if(leftAngleWallSelected && _type == Note.NoteType.SeparateHandSpecial) return true;
+			else if(rightAngleWallSelected && _type == Note.NoteType.OneHandSpecial) return true;
+			else if(centerWallSelected && _type == Note.NoteType.BothHandsSpecial) return true;
+			else return false;
+		}
+		
         /// <summary>
         /// Fill the clipboard with the data to be copied
         ///</summary>
@@ -3075,7 +3110,7 @@ namespace MiKu.NET {
             CurrentClipBoard.crouchs.Clear();
             CurrentClipBoard.slides.Clear();
             CurrentClipBoard.lights.Clear();
-
+			
             List<float> keys_tofilter = workingTrack.Keys.ToList();
             if(CurrentSelection.endTime > CurrentSelection.startTime) {				
                 keys_tofilter = keys_tofilter.Where(time => time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE 
@@ -3087,11 +3122,11 @@ namespace MiKu.NET {
                 CurrentClipBoard.jumps = jumps.Where(time => time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE 
                     && time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
 
-                CurrentClipBoard.crouchs = crouchs.Where(c => c.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE 
+                if(crouchWallSelected) CurrentClipBoard.crouchs = crouchs.Where(c => c.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE 
                     && c.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
                 
                 CurrentClipBoard.slides = slides.Where(s => s.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
-                    && s.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
+                    && s.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE && CheckWallTypeSelectionEnabled(s.slideType)).ToList();
 
                 CurrentClipBoard.lights = lights.Where(time => time >= GetBeatMeasureByTime(CurrentSelection.startTime )-MEASURE_CHECK_TOLERANCE
                     && time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
@@ -3108,9 +3143,9 @@ namespace MiKu.NET {
 
                 CurrentClipBoard.jumps = jumps.Where(time => time == CurrentSelectedMeasure).ToList();
 
-                CurrentClipBoard.crouchs = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
+                if(crouchWallSelected) CurrentClipBoard.crouchs = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
 
-                CurrentClipBoard.slides = slides.Where(s => s.time == CurrentSelectedMeasure).ToList();
+                CurrentClipBoard.slides = slides.Where(s => s.time == CurrentSelectedMeasure && CheckWallTypeSelectionEnabled(s.slideType)).ToList();
 
                 CurrentClipBoard.lights = lights.Where(time => time == CurrentSelectedMeasure).ToList();
 
@@ -3130,16 +3165,18 @@ namespace MiKu.NET {
                     
                     for(int i = 0; i < totalNotes; ++i) {
                         Note toCopy = copyNotes[i];
-                        clipboardNotes.Add(
-                            new ClipboardNote(
-                                toCopy.Position,
-                                toCopy.Type,
-                                toCopy.Segments
-                            )
-                        );						
+						if(CheckNoteTypeSelectionEnabled(toCopy.Type)){
+							clipboardNotes.Add(
+								new ClipboardNote(
+									toCopy.Position,
+									toCopy.Type,
+									toCopy.Segments
+								)
+							);	
+						}							
                     }
 
-                    CurrentClipBoard.notes.Add(lookUpTime, clipboardNotes);
+                    if(clipboardNotes.Count > 0) CurrentClipBoard.notes.Add(lookUpTime, clipboardNotes);
                 }				
             }	
 
@@ -3186,7 +3223,7 @@ namespace MiKu.NET {
                     return;
                 } */
 
-                DeleteNotesAtTheCurrentTime();
+                if(pasteDeletesExistingRange) DeleteNotesAtTheCurrentTime();
 				isBusy = true;
 				HistoryEvent historyEvent = new HistoryEvent();
                 List<float> note_keys = pasteContent.notes.Keys.ToList();
@@ -3205,6 +3242,8 @@ namespace MiKu.NET {
                             
 
                             for(int j = 0; j < currList.Count; ++j) {
+								bool keepingExistingNote = false;
+								bool doNotPaste = false;
                                 ClipboardNote currNote = currList[j];						
                                 float newPos = MStoUnit(GetTimeByMeasure(newTime));											
 
@@ -3248,14 +3287,62 @@ namespace MiKu.NET {
                                     }
                                     copyNote.Segments = copySegments;
                                 }
-								historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, copyNote.Type, newTime, new float[] {copyNote.Position[0], copyNote.Position[1], copyNote.Position[2]}, copyNote.Segments));
-                                AddNoteGameObjectToScene(copyNote, newTime);
-                                copyList.Add(copyNote);
-                                UpdateTotalNotes();
+								// Check conflicts
+								if(!pasteDeletesExistingRange) {
+									GameObject targetToDelete;
+									List<float> keys_tofilter = workingTrack.Keys.ToList();
+									keys_tofilter = keys_tofilter.Where(time => time >= newTime-MEASURE_CHECK_TOLERANCE 
+										&& time <= newTime+MEASURE_CHECK_TOLERANCE).ToList();
+									for(int k = 0; k < keys_tofilter.Count; ++k) {
+										float lookUpTime = keys_tofilter[k];
+										if(workingTrack.ContainsKey(lookUpTime)) {
+											List<Note> checkNotes = workingTrack[lookUpTime];
+											int totalNotes = checkNotes.Count;
+											for(int l = 0; l < totalNotes; ++l) {
+												Note toCheck = checkNotes[l];
+												bool conflict = false;
+												if(toCheck.Type == Note.NoteType.OneHandSpecial || 
+												   toCheck.Type == Note.NoteType.BothHandsSpecial || 
+												   copyNote.Type == Note.NoteType.OneHandSpecial || 
+												   copyNote.Type == Note.NoteType.BothHandsSpecial ||
+												   copyNote.Type == toCheck.Type || 
+												   ArePositionsOverlaping(new Vector3(copyNote.Position[0], copyNote.Position[1], copyNote.Position[2]), new Vector3(toCheck.Position[0], toCheck.Position[1], toCheck.Position[2]))){
+													if(pastePrioritizesPasted){
+														Debug.Log("Paste conflict found at beat " + lookUpTime + " and " + newTime + "! Prioritizing pasted!");
+														historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, toCheck.Type, lookUpTime, toCheck.Position, toCheck.Segments));
+														targetToDelete = GameObject.Find(toCheck.Id);
+														if(targetToDelete) DestroyImmediate(targetToDelete);
+														s_instance.UpdateTotalNotes(false, true);
+													 } else if(pastePrioritizesExisting){
+														Debug.Log("Paste conflict found at beat " + lookUpTime + " and " + newTime + "! Prioritizing existing!");
+														if(lookUpTime == newTime) {
+															 Debug.Log("Beats match exactly - removing and duplicating existing!");
+															 copyNote = toCheck;
+															 keepingExistingNote = true;
+															 targetToDelete = GameObject.Find(toCheck.Id);
+															 if(targetToDelete) DestroyImmediate(targetToDelete);
+															 s_instance.UpdateTotalNotes(false, true);
+														} else doNotPaste = true;
+													 }
+												}							
+											}
+										}				
+									}
+								}
+								// End conflict check
+								if(!doNotPaste){
+									if(!keepingExistingNote) historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, true, copyNote.Type, newTime, new float[] {copyNote.Position[0], copyNote.Position[1], copyNote.Position[2]}, copyNote.Segments));
+									AddNoteGameObjectToScene(copyNote, newTime);
+									copyList.Add(copyNote);
+									UpdateTotalNotes();
+								}
                             }
-
-                            workingTrack.Add(newTime, copyList);
-                            AddTimeToSFXList(GetTimeByMeasure(newTime));
+							if(copyList.Count > 0){
+								if(workingTrack.ContainsKey(newTime)) workingTrack.Remove(newTime);
+								if(hitSFXSource.Contains(newTime)) hitSFXSource.Remove(s_instance.GetTimeByMeasure(newTime));
+								workingTrack.Add(newTime, copyList);
+								AddTimeToSFXList(GetTimeByMeasure(newTime));
+							}
                         }                        
                     }				
                 }
@@ -3265,11 +3352,43 @@ namespace MiKu.NET {
                     if(GetTimeByMeasure(CurrentSelectedMeasure) >= MIN_NOTE_START * MS && GetTimeByMeasure(CurrentSelectedMeasure) < (TrackDuration * MS)) { 
 						float pasteCrouchXPosition = pasteContent.crouchs[i].position[0]; 
                         if(reversePaste) pasteCrouchXPosition*=-1;
-						History.changingHistory = true;
-						ToggleMovementSectionToChart(CROUCH_TAG, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, true);
-						History.changingHistory = false;
-						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
-                    }
+						if(!pasteDeletesExistingRange) {
+							// Check for conflicts
+							List<Crouch> workingCrouchs = GetCurrentCrouchListByDifficulty();
+							List<Slide> workingSlides = GetCurrentMovementListByDifficulty();
+							Crouch conflictCrouch = workingCrouchs.Where(c => c.time == CurrentSelectedMeasure).FirstOrDefault();
+							Slide conflictSlide = workingSlides.Where(s => s.time == CurrentSelectedMeasure).FirstOrDefault();
+							if(conflictCrouch.initialized){
+								if(pastePrioritizesPasted){
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(CROUCH_TAG, new float[] {conflictCrouch.position[0], conflictCrouch.position[1], conflictCrouch.position[2]}, false);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, false, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {conflictCrouch.position[0], conflictCrouch.position[1], conflictCrouch.position[2]}, new float[,] {}));
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(CROUCH_TAG, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, true);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
+								}
+							} else if(conflictSlide.initialized){
+								if(pastePrioritizesPasted){
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(GetSlideTagByType(conflictSlide.slideType), new float[] {conflictSlide.position[0], conflictSlide.position[1], conflictSlide.position[2]}, false, false, conflictSlide.zRotation);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, conflictSlide.slideType, CurrentSelectedMeasure, new float[] {conflictSlide.position[0], conflictSlide.position[1], conflictSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, conflictSlide.zRotation}));
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(CROUCH_TAG, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, true);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
+								}
+							}
+							// End conflict check
+						} else {
+							History.changingHistory = true;
+							ToggleMovementSectionToChart(CROUCH_TAG, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, true);
+							History.changingHistory = false;
+							historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
+						}
+					}
                 }
 
                 for(int i = 0; i < pasteContent.slides.Count; ++i) {
@@ -3292,11 +3411,43 @@ namespace MiKu.NET {
 							pasteSlideXPosition*=-1;
 							pasteSlidezRotation*=-1;
                         }
-						History.changingHistory = true;
-                        ToggleMovementSectionToChart(GetSlideTagByType(pasteSlideType), new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, true, false, pasteSlidezRotation);
-						History.changingHistory = false;
-						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
-                    }
+						if(!pasteDeletesExistingRange) {
+							// Check for conflicts
+							List<Crouch> workingCrouchs = GetCurrentCrouchListByDifficulty();
+							List<Slide> workingSlides = GetCurrentMovementListByDifficulty();
+							Crouch conflictCrouch = workingCrouchs.Where(c => c.time == CurrentSelectedMeasure).FirstOrDefault();
+							Slide conflictSlide = workingSlides.Where(s => s.time == CurrentSelectedMeasure).FirstOrDefault();
+							if(conflictSlide.initialized){
+								if(pastePrioritizesPasted){
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(GetSlideTagByType(conflictSlide.slideType), new float[] {conflictSlide.position[0], conflictSlide.position[1], conflictSlide.position[2]}, false, false, conflictSlide.zRotation);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, conflictSlide.slideType, CurrentSelectedMeasure, new float[] {conflictSlide.position[0], conflictSlide.position[1], conflictSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, conflictSlide.zRotation}));
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(GetSlideTagByType(pasteSlideType), new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, true, false, pasteSlidezRotation);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
+								} 
+							} else if(conflictCrouch.initialized){
+								if(pastePrioritizesPasted){
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(CROUCH_TAG, new float[] {conflictCrouch.position[0], conflictCrouch.position[1], conflictCrouch.position[2]}, false);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, false, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {conflictCrouch.position[0], conflictCrouch.position[1], conflictCrouch.position[2]}, new float[,] {}));
+									History.changingHistory = true;
+									ToggleMovementSectionToChart(GetSlideTagByType(pasteSlideType), new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, true, false, pasteSlidezRotation);
+									History.changingHistory = false;
+									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
+								}
+							}
+							// End conflict check
+						} else {
+							History.changingHistory = true;
+							ToggleMovementSectionToChart(GetSlideTagByType(pasteSlideType), new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, true, false, pasteSlidezRotation);
+							History.changingHistory = false;
+							historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
+						}
+					}
                 }
 
                 for(int i = 0; i < pasteContent.effects.Count; ++i) {
@@ -3354,17 +3505,17 @@ namespace MiKu.NET {
 				if(CurrentSelection.endTime > CurrentSelection.startTime) {				
 					keys_tofilter = keys_tofilter.Where(time => time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE 
 						&& time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
-					flipClipboard.crouchs = crouchs.Where(c => c.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
+					if(crouchWallSelected) flipClipboard.crouchs = crouchs.Where(c => c.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
 						&& c.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
 					flipClipboard.slides = slides.Where(s => s.time >= GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
-						&& s.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
+						&& s.time <= GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE && CheckWallTypeSelectionEnabled(s.slideType)).ToList();
 					flipClipboard.startTime = CurrentSelection.startTime;
 					flipClipboard.startMeasure = CurrentSelection.startMeasure;
 					flipClipboard.lenght = CurrentSelection.endTime - CurrentSelection.startTime;
 				} else {
 					keys_tofilter = keys_tofilter.Where(time => time == CurrentSelectedMeasure).ToList();
-					flipClipboard.crouchs = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
-					flipClipboard.slides = slides.Where(s => s.time == CurrentSelectedMeasure).ToList();
+					if(crouchWallSelected) flipClipboard.crouchs = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
+					flipClipboard.slides = slides.Where(s => s.time == CurrentSelectedMeasure && CheckWallTypeSelectionEnabled(s.slideType)).ToList();
 					flipClipboard.startTime = GetTimeByMeasure(CurrentSelectedMeasure);
 					flipClipboard.startMeasure = CurrentSelectedMeasure;
 					flipClipboard.lenght = 0;
@@ -3376,11 +3527,21 @@ namespace MiKu.NET {
 						List<Note> copyNotes = workingTrack[lookUpTime];
 						List<ClipboardNote> clipboardNotes = new List<ClipboardNote>();
 						int totalNotes = copyNotes.Count;
-						for(int i = 0; i < totalNotes; ++i) {
-							Note toCopy = copyNotes[i];
-							clipboardNotes.Add(new ClipboardNote(toCopy.Position, toCopy.Type, toCopy.Segments));						
+						if(totalNotes == 2 && (leftHandNoteSelected ^ rightHandNoteSelected)){
+							if((copyNotes[0].Type == Note.NoteType.LeftHanded && leftHandNoteSelected) || (copyNotes[0].Type == Note.NoteType.RightHanded && rightHandNoteSelected)){
+								if(pastePrioritizesExisting) clipboardNotes.Add(new ClipboardNote(copyNotes[1].Position, copyNotes[1].Type, copyNotes[1].Segments));
+								else clipboardNotes.Add(new ClipboardNote(copyNotes[0].Position, copyNotes[0].Type, copyNotes[0].Segments));
+							} else if((copyNotes[1].Type == Note.NoteType.LeftHanded && leftHandNoteSelected) || (copyNotes[1].Type == Note.NoteType.RightHanded && rightHandNoteSelected)){
+								if(pastePrioritizesExisting) clipboardNotes.Add(new ClipboardNote(copyNotes[0].Position, copyNotes[0].Type, copyNotes[0].Segments));
+								else clipboardNotes.Add(new ClipboardNote(copyNotes[1].Position, copyNotes[1].Type, copyNotes[1].Segments));
+							} 							
+						} else {	
+							for(int i = 0; i < totalNotes; ++i) {
+								Note toCopy = copyNotes[i];
+								if(!pasteDeletesExistingRange || CheckNoteTypeSelectionEnabled(toCopy.Type)) clipboardNotes.Add(new ClipboardNote(toCopy.Position, toCopy.Type, toCopy.Segments));						
+							}
 						}
-						flipClipboard.notes.Add(lookUpTime, clipboardNotes);
+						if(clipboardNotes.Count > 0) flipClipboard.notes.Add(lookUpTime, clipboardNotes);
 					}				
 				}	
 				// Remove the existing pattern and replace it with flipped variation
@@ -6095,7 +6256,7 @@ namespace MiKu.NET {
         /// <summary>
         /// Remove the notes on the current time
         /// </summary>
-        void DeleteNotesAtTheCurrentTime(bool omitEffects = false) {
+        void DeleteNotesAtTheCurrentTime(bool omitEffects = false, bool manualAreaDelete = false) {
             isBusy = true;
 
             Dictionary<float, List<Note>> workingTrack = s_instance.GetCurrentTrackDifficulty();
@@ -6109,7 +6270,7 @@ namespace MiKu.NET {
 
             List<float> keys_tofilter = workingTrack.Keys.ToList();
             List<float> effects_tofilter, jumps_tofilter, lights_tofilter;
-			List<Crouch> crouchs_tofilter;
+			List<Crouch> crouchs_tofilter = new List<Crouch>();
             List<Slide> slides_tofilter;		
 			
 			HistoryEvent historyEvent = new HistoryEvent();
@@ -6124,11 +6285,11 @@ namespace MiKu.NET {
                 jumps_tofilter = jumps.Where(time => time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
                     && time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
 
-                crouchs_tofilter = crouchs.Where(c => c.time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
+                if(!manualAreaDelete || crouchWallSelected) crouchs_tofilter = crouchs.Where(c => c.time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
                     && c.time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
                 
                 slides_tofilter = slides.Where(s => s.time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
-                    && s.time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
+                    && s.time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE && (!manualAreaDelete || CheckWallTypeSelectionEnabled(s.slideType))).ToList();
 
                 lights_tofilter = lights.Where(time => time >= s_instance.GetBeatMeasureByTime(CurrentSelection.startTime)-MEASURE_CHECK_TOLERANCE
                     && time <= s_instance.GetBeatMeasureByTime(CurrentSelection.endTime)+MEASURE_CHECK_TOLERANCE).ToList();
@@ -6142,9 +6303,9 @@ namespace MiKu.NET {
 
                 jumps_tofilter = jumps.Where(time => time == CurrentSelectedMeasure).ToList();
 
-                crouchs_tofilter = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
+                if(!manualAreaDelete || crouchWallSelected) crouchs_tofilter = crouchs.Where(c => c.time == CurrentSelectedMeasure).ToList();
 
-                slides_tofilter = slides.Where(s => s.time == CurrentSelectedMeasure).ToList();
+                slides_tofilter = slides.Where(s => s.time == CurrentSelectedMeasure && (!manualAreaDelete || CheckWallTypeSelectionEnabled(s.slideType))).ToList();
 
                 lights_tofilter = lights.Where(time => time == CurrentSelectedMeasure).ToList();
             }
@@ -6159,14 +6320,16 @@ namespace MiKu.NET {
                     
                     for(int i = 0; i < totalNotes; ++i) {
                         Note toRemove = notes[i];
-						historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, toRemove.Type, lookUpTime, toRemove.Position, toRemove.Segments));
-                        targetToDelete = GameObject.Find(toRemove.Id);
-                        // print(targetToDelete);
-                        if(targetToDelete) {
-                            DestroyImmediate(targetToDelete);
-                        }
-                        
-                        s_instance.UpdateTotalNotes(false, true);
+						if(!manualAreaDelete || CheckNoteTypeSelectionEnabled(toRemove.Type)){
+							historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryNote, false, toRemove.Type, lookUpTime, toRemove.Position, toRemove.Segments));
+							targetToDelete = GameObject.Find(toRemove.Id);
+							// print(targetToDelete);
+							if(targetToDelete) {
+								DestroyImmediate(targetToDelete);
+							}
+							
+							s_instance.UpdateTotalNotes(false, true);
+						}
                     }
 
                     notes.Clear();
@@ -9358,8 +9521,16 @@ namespace MiKu.NET {
 
         private void ToggleSelectionArea(bool isOFF = false) {
             if(isOFF) {
+				if(SelectionOptions.selectionOptions.panelActive && CurrentSelection.startTime >= CurrentSelection.endTime){
+					SelectionOptions.selectionOptions.panelActive = false;
+					m_SelectionWindowAnimator.Play("Panel Out");
+				}
                 ToggleWorkingStateAlertOff();		
             } else {
+				if(!SelectionOptions.selectionOptions.panelActive) {
+					SelectionOptions.selectionOptions.panelActive = true;
+					m_SelectionWindowAnimator.Play("Panel In");
+				}
                 CurrentSelection.startTime = CurrentTime;
                 CurrentSelection.startMeasure = CurrentSelectedMeasure;
                 ToggleWorkingStateAlertOn(StringVault.Info_UserOnSelectionMode);
@@ -9368,6 +9539,10 @@ namespace MiKu.NET {
         }
 
         private void SelectAll() {
+			if(!SelectionOptions.selectionOptions.panelActive) {
+				SelectionOptions.selectionOptions.panelActive = true;
+				m_SelectionWindowAnimator.Play("Panel In");
+			}
             CurrentSelection.startTime = 0;
             CurrentSelection.startMeasure = 0;
             CurrentSelection.endTime = TrackDuration * 1000;
@@ -9375,6 +9550,10 @@ namespace MiKu.NET {
         }
 
         private void ClearSelectionMarker() {
+			if(SelectionOptions.selectionOptions.panelActive) {
+				SelectionOptions.selectionOptions.panelActive = false;
+				m_SelectionWindowAnimator.Play("Panel Out");
+			}
             CurrentSelection.startTime = 0;
             CurrentSelection.startMeasure = 0;
             CurrentSelection.endTime = 0;
