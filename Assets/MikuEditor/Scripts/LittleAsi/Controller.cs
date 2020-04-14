@@ -94,6 +94,7 @@ public class Controller : MonoBehaviour {
 		CreateKeyBinding("AddMirrorNoteAction", "Add Mirror Note", "Mouse0", true, true, false, "None", false, false, false, true);
 		CreateKeyBinding("FlipAction", "Flip Object Handedness and Position Over X Axis", "F", false, false, false, "None", false, false, false, true);
 		CreateKeyBinding("CopyKeyAction", "Copy the Current/Selected Objects", "C", true, false, false, "None", false, false, false, true);
+		CreateKeyBinding("CutKeyAction", "Cut the Current/Selected Objects", "X", true, false, false, "None", false, false, false, true);
 		CreateKeyBinding("PasteKeyAction", "Paste the Copied Objects", "V", true, false, false, "None", false, false, false, true);
 		CreateKeyBinding("PasteMirrorKeyAction", "Mirror Paste the Copied Objects", "V", false, true, false, "None", false, false, false, true);
 		CreateKeyBinding("UndoAction", "Undo Previous Action", "Z", true, false, false, "None", false, false, false, true);
