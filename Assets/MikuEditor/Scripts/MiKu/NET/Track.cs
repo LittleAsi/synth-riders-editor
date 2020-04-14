@@ -1475,7 +1475,7 @@ namespace MiKu.NET {
 			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
-			DeleteNotesAtTheCurrentTime();
+			DeleteNotesAtTheCurrentTime(false, true);
 			UpdateSegmentsList();
 		}
 		
@@ -1514,6 +1514,22 @@ namespace MiKu.NET {
 			CloseSpecialSection();
 			FinalizeLongNoteMode();
 			CopyAction();
+		}
+		
+		public void CutKeyAction(){
+			if(PromtWindowOpen || helpWindowOpen || colorPickerWindowOpen || IsPlaying) return;
+			CloseSpecialSection();
+			FinalizeLongNoteMode();
+			float sStartTime = CurrentSelection.startTime;
+			float sStartMeasure = CurrentSelection.startMeasure;
+			float sEndTime = CurrentSelection.endTime;
+			CopyAction();
+			CurrentSelection.startTime = sStartTime;
+			CurrentSelection.startMeasure = sStartMeasure;
+			CurrentSelection.endTime = sEndTime;
+			UpdateSelectionMarker();
+			DeleteNotesAtTheCurrentTime(false, true);
+			UpdateSegmentsList();
 		}
 		
 		public void PasteKeyAction(){
