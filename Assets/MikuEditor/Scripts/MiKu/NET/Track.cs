@@ -9771,7 +9771,8 @@ namespace MiKu.NET {
                 .AppendLine(string.Format("<indent=10%>- Diagonal Left - <b>{0}</b></indent>", totalDiagLeft))   
                 .AppendLine(string.Format("<indent=10%>- Right - <b>{0}</b></indent>", totalRight))
                 .AppendLine(string.Format("<indent=10%>- Diagonal Right - <b>{0}</b></indent>", totalDiagRight))
-                .AppendLine(string.Format("<indent=10%>- Crouch - <b>{0}</b></indent>", totalCrouchs));
+                .AppendLine(string.Format("<indent=10%>- Crouch - <b>{0}</b></indent>", totalCrouchs))
+                .AppendLine(string.Format("<indent=10%>- Dict Keys - <b>{0}</b></indent>", workingTrack.Count));
 
             m_FullStatsText.SetText(statsSTRBuilder.ToString());
 
