@@ -3396,6 +3396,11 @@ namespace MiKu.NET {
 									History.changingHistory = false;
 									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
 								}
+							} else {
+								History.changingHistory = true;
+								ToggleMovementSectionToChart(CROUCH_TAG, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, true);
+								History.changingHistory = false;
+								historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, true, Note.NoteType.NoHand, CurrentSelectedMeasure, new float[] {pasteCrouchXPosition, pasteContent.crouchs[i].position[1], pasteContent.crouchs[i].position[2]}, new float[,] {}));
 							}
 							// End conflict check
 						} else {
@@ -3455,7 +3460,12 @@ namespace MiKu.NET {
 									History.changingHistory = false;
 									historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
 								}
-							}
+							} else {
+								History.changingHistory = true;
+								ToggleMovementSectionToChart(GetSlideTagByType(pasteSlideType), new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, true, false, pasteSlidezRotation);
+								History.changingHistory = false;
+								historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistorySlide, true, pasteSlideType, CurrentSelectedMeasure, new float[] {pasteSlideXPosition, pasteSlide.position[1], pasteSlide.position[2]}, new float[,] {}, new float[] {0f, 0f, pasteSlidezRotation}));
+						}
 							// End conflict check
 						} else {
 							History.changingHistory = true;
