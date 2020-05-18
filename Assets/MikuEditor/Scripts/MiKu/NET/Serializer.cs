@@ -24,6 +24,9 @@ namespace MiKu.NET {
 
         public static Serializer s_instance;
 
+        [SerializeField]
+        private string ZipPassword;
+
         public bool IsAdminMode = true;
 
         // Chart created if new or loaded
@@ -52,6 +55,8 @@ namespace MiKu.NET {
         public static AudioClip ExtractedClip { get; set; }
 
         public static bool BachComplete { get; set; }
+
+        public bool DoZipEncryption = false;
 
         // Use this for initialization
         void Start () {
@@ -203,6 +208,11 @@ namespace MiKu.NET {
                     if(isUpdate) {
                         using (ZipFile zip = ZipFile.Read(destination))
                         {	
+                            if(s_instance.DoZipEncryption) {
+                                zip.Encryption = EncryptionAlgorithm.WinZipAes256;
+                                zip.Password = s_instance.ZipPassword;
+                            }
+                            
                             // zip.UpdateEntry(meta_field_name, memStream);
                             zip.UpdateEntry(meta_field_name, JsonConvert.SerializeObject(ChartData, Formatting.Indented));
                             if(CurrentAudioFileToCompress != null && !CurrentAudioFileToCompress.Equals(string.Empty)) {
@@ -251,6 +261,11 @@ namespace MiKu.NET {
                     } else {
                         using (ZipFile zip = new ZipFile(Encoding.UTF8))
                         {	
+                            if(s_instance.DoZipEncryption) {
+                                zip.Encryption = EncryptionAlgorithm.WinZipAes256;
+                                zip.Password = s_instance.ZipPassword;
+                            }
+
                             // zip.AddEntry(meta_field_name, memStream);
                             zip.AddEntry(meta_field_name, JsonConvert.SerializeObject(ChartData, Formatting.Indented));
                             // zip.AddFile(@CurrentAudioFileToCompress, "");
@@ -313,6 +328,7 @@ namespace MiKu.NET {
                 try {
                     using (ZipFile zip = ZipFile.Read(filePath))
                     {
+                        zip.Password = s_instance.ZipPassword;
                         ZipEntry e = zip[meta_field_name];					
                         e.Extract(memStream);
                     }	
@@ -378,6 +394,7 @@ namespace MiKu.NET {
                     // Section for load of files previos to version 1.8					
                     using (ZipFile zip = ZipFile.Read(filePath))
                     {
+                        // zip.Password = "HelloWorld";
                         ZipEntry e = zip[meta_field_name];					
                         e.Extract(memStream);
                     }		
@@ -608,6 +625,7 @@ namespace MiKu.NET {
 
                 using (ZipFile zip = ZipFile.Read(zipPath))
                 {
+                    zip.Password = s_instance.ZipPassword;
                     foreach (ZipEntry e in zip.Where(x => x.FileName.EndsWith(".ogg") || x.FileName.EndsWith(".wav")))
                     {
                         e.Extract(CHART_TEMP_PATH, ExtractExistingFileAction.OverwriteSilently);

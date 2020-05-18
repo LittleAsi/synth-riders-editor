@@ -299,6 +299,30 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				if(Serializer.ChartData.Bookmarks == null) { 
 					Serializer.ChartData.Bookmarks = new Bookmarks();
 				}
+
+				if(Serializer.ChartData.Squares == null) {
+					Squares defaultSquares = new Squares();
+					defaultSquares.Easy = new List<Square>();
+					defaultSquares.Normal = new List<Square>();
+					defaultSquares.Hard = new List<Square>();
+					defaultSquares.Expert = new List<Square>();
+					defaultSquares.Master = new List<Square>();
+					defaultSquares.Custom = new List<Square>();
+
+					Serializer.ChartData.Squares = defaultSquares;
+				}
+
+				if(Serializer.ChartData.Triangles == null) {
+					Triangles defaultTriangles = new Triangles();
+					defaultTriangles.Easy = new List<Triangle>();
+					defaultTriangles.Normal = new List<Triangle>();
+					defaultTriangles.Hard = new List<Triangle>();
+					defaultTriangles.Expert = new List<Triangle>();
+					defaultTriangles.Master = new List<Triangle>();
+					defaultTriangles.Custom = new List<Triangle>();
+
+					Serializer.ChartData.Triangles = defaultTriangles;
+				}
 				
 				Serializer.GetAudioClipFromZip(
                     (Serializer.ChartData.FilePath != null && Serializer.CurrentAudioFileToCompress == null) ? Serializer.ChartData.FilePath : string.Empty,
@@ -559,6 +583,22 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				defaultLights.Expert = new List<float>();
 				defaultLights.Master = new List<float>();
 				defaultLights.Custom = new List<float>();
+
+				Squares defaultSquares = new Squares();
+				defaultSquares.Easy = new List<Square>();
+				defaultSquares.Normal = new List<Square>();
+				defaultSquares.Hard = new List<Square>();
+				defaultSquares.Expert = new List<Square>();
+				defaultSquares.Master = new List<Square>();
+				defaultSquares.Custom = new List<Square>();				
+
+				Triangles defaultTriangles = new Triangles();
+				defaultTriangles.Easy = new List<Triangle>();
+				defaultTriangles.Normal = new List<Triangle>();
+				defaultTriangles.Hard = new List<Triangle>();
+				defaultTriangles.Expert = new List<Triangle>();
+				defaultTriangles.Master = new List<Triangle>();
+				defaultTriangles.Custom = new List<Triangle>();				
 				
 				/// For testing				
 				/*var list = new List<Note>();
@@ -596,6 +636,8 @@ public class Miku_LoadFileHelper : MonoBehaviour {
 				chart.UsingBeatMeasure = true;
 				chart.UpdatedWithMovementPositions = false;
 				chart.ProductionMode = false;
+				chart.Squares = defaultSquares;
+				chart.Triangles = defaultTriangles;
 				
 				Serializer.ChartData = chart;
 			}

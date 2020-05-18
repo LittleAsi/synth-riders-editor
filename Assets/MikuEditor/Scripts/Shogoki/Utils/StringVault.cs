@@ -233,7 +233,23 @@ namespace Shogoki.Utils {
 
 		[SerializeField]
 		[TextArea(3, 8)]
-		private string info_CrouchOff = "Crouch section turned off for the current time";	 
+		private string info_CrouchOff = "Crouch section turned off for the current time";
+
+        [SerializeField]
+		[TextArea(3, 8)]
+		private string info_SquaresOn = "Square section turned on for the current time";
+
+		[SerializeField]
+		[TextArea(3, 8)]
+		private string info_SquaresOff = "Square section turned off for the current time";	
+
+        [SerializeField]
+		[TextArea(3, 8)]
+		private string info_TriangleOn = "Triangle section turned on for the current time";
+
+		[SerializeField]
+		[TextArea(3, 8)]
+		private string info_TriangleOff = "Triangle section turned off for the current time";
 
         [SerializeField]
 		[TextArea(3, 8)]
@@ -322,6 +338,10 @@ namespace Shogoki.Utils {
         [SerializeField]
 		[TextArea(3, 8)]
 		private string info_StepType = "Step Type: {0}";
+
+        [SerializeField]
+		[TextArea(3, 8)]
+		string info_ZipEncryption = "File Protection is: {0}";
 #endregion		
 
         void Start () {
@@ -781,6 +801,38 @@ namespace Shogoki.Utils {
             }
         }
 
+        public static string Info_SquaresOn
+        {
+            get
+            {
+                return s_instance.info_SquaresOn;
+            }
+        }
+
+        public static string Info_SquaresOff
+        {
+            get
+            {
+                return s_instance.info_SquaresOff;
+            }
+        }
+
+        public static string Info_TriangleOn
+        {
+            get
+            {
+                return s_instance.info_TriangleOn;
+            }
+        }
+
+        public static string Info_TriangleOff
+        {
+            get
+            {
+                return s_instance.info_TriangleOff;
+            }
+        }
+
         public static string Info_SlideOn
         {
             get
@@ -944,6 +996,14 @@ namespace Shogoki.Utils {
             get
             {
                 return s_instance.info_StepType;
+            }
+        }
+
+        public static string Info_ZipEncryption
+        {
+            get
+            {
+                return s_instance.info_ZipEncryption;
             }
         }
         

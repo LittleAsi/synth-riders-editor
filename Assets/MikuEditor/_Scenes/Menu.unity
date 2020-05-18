@@ -7551,7 +7551,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 77d12e74d425716429baee4b27d68746, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  ZipPassword: hC2*wE5R*qQzv@a!
   IsAdminMode: 0
+  DoZipEncryption: 0
 --- !u!1 &324544503
 GameObject:
   m_ObjectHideFlags: 0
@@ -9226,7 +9228,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   m_TermsHolder: {fileID: 1383288674}
   m_termsAnimator: {fileID: 1383288676}
-  editorVersion: 1.9.8-1
+  editorVersion: 1.9.9-1
   editorName: SynthRiders Editor v{0}
 --- !u!1 &402065531
 GameObject:
@@ -10991,7 +10993,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: 1.9.8-1
+  m_Text: 1.9.9-1
 --- !u!222 &492468736
 CanvasRenderer:
   m_ObjectHideFlags: 0
@@ -37950,6 +37952,10 @@ MonoBehaviour:
   info_JumpOff: Jump section turned off for the current time
   info_CrouchOn: Crouch section turned on for the current time
   info_CrouchOff: Crouch section turned off for the current time
+  info_SquaresOn: Square section turned on for the current time
+  info_SquaresOff: Square section turned off for the current time
+  info_TriangleOn: Triangle section turned on for the current time
+  info_TriangleOff: Triangle section turned off for the current time
   info_SlideOn: Slide section turned on for the current time
   info_SlideOff: Slide section turned off for the current time
   info_BookmarkOn: Bookmark add sucessfully
@@ -37973,6 +37979,7 @@ MonoBehaviour:
   info_LightsEffect: Lights effect is turned {0} for the current time
   info_GridSnapp: Snap to Grid {0}
   info_StepType: 'Step Type: {0}'
+  info_ZipEncryption: 'File Protection is: {0}'
 --- !u!1 &1445402832
 GameObject:
   m_ObjectHideFlags: 0
