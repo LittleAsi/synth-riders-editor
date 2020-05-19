@@ -138,7 +138,9 @@ namespace LittleAsi.History {
 			HistoryJump, // Seems unused
 			HistoryCrouch, // Top walls
 			HistorySlide, // All other wall types
-			HistoryLight // Seems unused
+			HistoryLight, // Seems unused
+			HistorySquareWall,
+			HistoryTriangleWall
 		}
 		
 		public History(){

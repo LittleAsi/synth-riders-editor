@@ -28,6 +28,8 @@ namespace MiKu.NET.Charting {
             BothHandsSpecial,
             SeparateHandSpecial,
             NoHand,
+            SquareObstacle,
+            TriangleObstacle
         };
 
         private string _id;
@@ -340,6 +342,92 @@ namespace MiKu.NET.Charting {
     }
 
     [Serializable]
+    public struct Square {
+        public float time;
+		public float[] position;
+        public bool initialized;
+    }   
+    
+    [Serializable]
+    /// <summary>
+    /// Class for the Crouch Representaion
+    /// </summary>
+    public class Squares {
+        /// <value>
+        /// Crouchs for the easy dificulty
+        /// </value>
+        public List<Square> Easy { get; set; }
+
+        /// <value>
+        /// Crouchs for the Normal dificulty
+        /// </value>
+        public List<Square> Normal { get; set; }
+
+        /// <value>
+        /// Crouchs for the Hard dificulty
+        /// </value>
+        public List<Square> Hard { get; set; }
+
+        /// <value>
+        /// Crouchs for the Expert dificulty
+        /// </value>
+        public List<Square> Expert { get; set; }
+
+        /// <value>
+        /// Crouchs for the Master dificulty
+        /// </value>
+        public List<Square> Master { get; set; }
+
+        /// <value>
+        /// Crouchs for the Custom dificulty
+        /// </value>
+        public List<Square> Custom { get; set; }
+    }
+
+    [Serializable]
+    public struct Triangle {
+        public float time;
+		public float[] position;
+        public bool initialized;
+    }    
+	
+    [Serializable]
+    /// <summary>
+    /// Class for the Crouch Representaion
+    /// </summary>
+    public class Triangles {
+        /// <value>
+        /// Crouchs for the easy dificulty
+        /// </value>
+        public List<Triangle> Easy { get; set; }
+
+        /// <value>
+        /// Crouchs for the Normal dificulty
+        /// </value>
+        public List<Triangle> Normal { get; set; }
+
+        /// <value>
+        /// Crouchs for the Hard dificulty
+        /// </value>
+        public List<Triangle> Hard { get; set; }
+
+        /// <value>
+        /// Crouchs for the Expert dificulty
+        /// </value>
+        public List<Triangle> Expert { get; set; }
+
+        /// <value>
+        /// Crouchs for the Master dificulty
+        /// </value>
+        public List<Triangle> Master { get; set; }
+
+        /// <value>
+        /// Crouchs for the Custom dificulty
+        /// </value>
+        public List<Triangle> Custom { get; set; }
+    }
+
+    [Serializable]
     public struct Drum {
         public float time;
         public int playType;
@@ -472,6 +560,10 @@ namespace MiKu.NET.Charting {
         /// List of the Lights for the chart
         /// </value>
         public Lights Lights { get; set; }      
+
+        public Squares Squares { get; set; }
+        
+        public Triangles Triangles { get; set; } 
 
         /// <value>
         /// List of the Drum for the chart

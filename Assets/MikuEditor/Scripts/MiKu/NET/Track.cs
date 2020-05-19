@@ -293,6 +293,8 @@ namespace MiKu.NET {
         private const string SLIDE_RIGHT_DIAG_TAG = "SlideRightDiag";
 
         private const string SLIDE_LEFT_DIAG_TAG = "SlideLeftDiag";
+        private const string SQUARE_WALL_TAG = "SquareWall";
+        private const string TRIANGLE_WALL_TAG = "TriangleWall";
 
         private const float MIN_TIME_OVERLAY_CHECK = 5;
 
@@ -365,6 +367,11 @@ namespace MiKu.NET {
 
         [SerializeField]
         private GameObject m_SlideDiagLeftElement;	
+
+        [SerializeField]
+        private GameObject m_SquareWallElement;	
+        [SerializeField]
+        private GameObject m_TriangleWallElement;	
 
         [SerializeField]
         private Light m_flashLight;
@@ -874,6 +881,7 @@ namespace MiKu.NET {
         private const string GRIDSIZE_KEY = "com.synth.editor.GridSize";
         private const string STEPTYPE_KEY = "com.synth.editor.StepType";
         private const string LASTPLACENOTE_KEY = "com.synth.editor.LastPlaceNote";
+        private const string DOZIPENCRYTION_KEY = "com.synth.editor.DoZipEncryption";
 
         // 
         private WaitForSeconds pointEightWait;
@@ -1269,6 +1277,12 @@ namespace MiKu.NET {
 					notesArea.UpdateNotePosWithKeyboard(hortAxis, vertAxis);
 				}
 			} 
+
+            if(Input.GetKeyDown(KeyCode.F1) && !PromtWindowOpen && !IsPlaying) {
+				if(isCTRLDown && isALTDown) {
+					ToggleZipEncryption();
+				}             			
+			}
             
 #endregion
 
@@ -2137,6 +2151,24 @@ namespace MiKu.NET {
                 defaultLights.Master = new List<float>();
                 defaultLights.Custom = new List<float>();
                 CurrentChart.Lights = defaultLights;
+
+                Squares defaultSquares = new Squares();
+				defaultSquares.Easy = new List<Square>();
+				defaultSquares.Normal = new List<Square>();
+				defaultSquares.Hard = new List<Square>();
+				defaultSquares.Expert = new List<Square>();
+				defaultSquares.Master = new List<Square>();
+				defaultSquares.Custom = new List<Square>();	
+                CurrentChart.Squares = defaultSquares;			
+
+				Triangles defaultTriangles = new Triangles();
+				defaultTriangles.Easy = new List<Triangle>();
+				defaultTriangles.Normal = new List<Triangle>();
+				defaultTriangles.Hard = new List<Triangle>();
+				defaultTriangles.Expert = new List<Triangle>();
+				defaultTriangles.Master = new List<Triangle>();
+				defaultTriangles.Custom = new List<Triangle>();	
+                CurrentChart.Triangles = defaultTriangles;
 
                 CurrentChart.BPM = BPM;
                 CurrentChart.Bookmarks = new Bookmarks();
@@ -3828,21 +3860,37 @@ namespace MiKu.NET {
         }
 
         /// <summary>
+        /// Toggle the Zip Encryption
+        ///</summary>
+        public void ToggleZipEncryption() {
+            Serializer.s_instance.DoZipEncryption = !Serializer.s_instance.DoZipEncryption;
+
+            Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info,
+                string.Format(
+                    StringVault.Info_ZipEncryption,
+                    (Serializer.s_instance.DoZipEncryption) ? "On" : "Off"
+                )
+            );
+        }
+
+        /// <summary>
         /// Toggle the Vsync On/Off
         ///</summary>
-        public void ToggleVsycn() {
+        public void ToggleVsycn(bool showMessage = true) {
             CurrentVsync++;
             if(CurrentVsync > 1) {
                 CurrentVsync = 0;
             }
 
             QualitySettings.vSyncCount = CurrentVsync;
-            Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info,
-                string.Format(
-                    StringVault.Info_VSyncnMode,
-                    (CurrentVsync == 1) ? "On" : "Off"
-                )
-            );
+            if(showMessage) {
+                Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info,
+                    string.Format(
+                        StringVault.Info_VSyncnMode,
+                        (CurrentVsync == 1) ? "On" : "Off"
+                    )
+                );
+            }            
         }
 
         /// <summary>
@@ -5207,11 +5255,24 @@ namespace MiKu.NET {
                 }
             }
 
-
             List<Slide> slides = GetCurrentMovementListByDifficulty();
             if(slides != null && slides.Count > 0) {
                 for(int i = 0; i < slides.Count; ++i) {
                     AddMovementGameObjectToScene(slides[i].time, slides[i].position, GetSlideTagByType(slides[i].slideType), slides[i].zRotation);
+                }
+            }
+
+            List<Square> squares = GetCurrentSquaresListByDifficulty();
+            if(squares != null && squares.Count > 0) {
+                for(int i = 0; i < squares.Count; ++i) {
+                    AddMovementGameObjectToScene(squares[i].time, squares[i].position,  SQUARE_WALL_TAG, 0);
+                }
+            }
+
+            List<Triangle> triangles = GetCurrentTrianglesListByDifficulty();
+            if(triangles != null && triangles.Count > 0) {
+                for(int i = 0; i < triangles.Count; ++i) {
+                    AddMovementGameObjectToScene(triangles[i].time, triangles[i].position,  TRIANGLE_WALL_TAG, 0);
                 }
             }
 
@@ -5792,8 +5853,6 @@ namespace MiKu.NET {
         GameObject AddMovementGameObjectToScene(float ms, float[] _pos, string MovementTag, float zRot = 0f) {
             GameObject movementToInst;
             
-            
-            
             switch(MovementTag) {
                 case JUMP_TAG:
                     movementToInst = s_instance.m_JumpElement;
@@ -5816,7 +5875,13 @@ namespace MiKu.NET {
                     break;
                 case SLIDE_RIGHT_DIAG_TAG:
                     movementToInst = s_instance.m_SlideDiagRightElement;
-                    break;					
+                    break;	
+                case SQUARE_WALL_TAG:
+                    movementToInst = s_instance.m_SquareWallElement;
+                    break;	
+                case TRIANGLE_WALL_TAG:
+                    movementToInst = s_instance.m_TriangleWallElement;
+                    break;			
                 default:
                     movementToInst = s_instance.m_JumpElement;
                     break;
@@ -8083,6 +8148,8 @@ namespace MiKu.NET {
 			Note.NoteType historySubType;
             List<Crouch> workingElementVert = s_instance.GetCurrentCrouchListByDifficulty();
             List<Slide> workingElementHorz = s_instance.GetCurrentMovementListByDifficulty();
+            List<Square> workingSquareElement = s_instance.GetCurrentSquaresListByDifficulty();
+            List<Triangle> workingTrianElement = s_instance.GetCurrentTrianglesListByDifficulty();
             switch(MoveTAG) {
                 case JUMP_TAG:
                     offText = StringVault.Info_JumpOff;
@@ -8097,6 +8164,18 @@ namespace MiKu.NET {
 					historyType = History.HistoryObjectType.HistoryCrouch;
 					historySubType = Note.NoteType.NoHand;
                     break;
+                case SQUARE_WALL_TAG:
+                    offText = StringVault.Info_SquaresOff;
+                    onText = StringVault.Info_SquaresOn;
+					historyType = History.HistoryObjectType.HistorySquareWall;
+					historySubType = Note.NoteType.SquareObstacle;
+                    break;
+                case TRIANGLE_WALL_TAG:
+                    offText = StringVault.Info_TriangleOff;
+                    onText = StringVault.Info_TriangleOn;
+					historyType = History.HistoryObjectType.HistoryTriangleWall;
+					historySubType = Note.NoteType.SquareObstacle;
+                    break;
                 default:
 					offText = StringVault.Info_SlideOff;
 					onText = StringVault.Info_SlideOn;
@@ -8107,6 +8186,9 @@ namespace MiKu.NET {
 			bool addNew = true;
 			Crouch foundCrouch = workingElementVert.Find(x => x.time == CurrentSelectedMeasure);
 			Slide foundSlide = workingElementHorz.Find(x => x.time == CurrentSelectedMeasure);
+            Square foundSquare = workingSquareElement.Find(x => x.time == CurrentSelectedMeasure);
+            Triangle foundTriangle = workingTrianElement.Find(x => x.time == CurrentSelectedMeasure);
+
 			// If there's already a slide here, remove it; if it's the same type as the passed parameter, note not to add a new one
 			if(foundSlide.initialized){
 				if(historySubType==foundSlide.slideType && foundSlide.position[0] == _pos[0] && foundSlide.position[1] == _pos[1]){
@@ -8121,6 +8203,7 @@ namespace MiKu.NET {
 					DestroyImmediate(moveGO);
 				}
 			}
+
 			// If there's already a crouch here, remove it; if it's the same type as the passed parameter, note not to add a new one
 			if(foundCrouch.initialized){
 				if (MoveTAG==CROUCH_TAG && foundCrouch.position[0] == _pos[0] && foundCrouch.position[1] == _pos[1]) {
@@ -8135,6 +8218,35 @@ namespace MiKu.NET {
 					DestroyImmediate(moveGO);
 				}
 			}
+
+            if(foundSquare.initialized){
+				if (MoveTAG==SQUARE_WALL_TAG && foundSquare.position[0] == _pos[0] && foundSquare.position[1] == _pos[1]) {
+					if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_SquaresOff);
+					if(!forcePlacement) addNew = false;
+				}
+				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, false, Note.NoteType.SquareObstacle, CurrentSelectedMeasure, foundSquare.position, new float[,] {}, new float[] {0f, 0f, 90f}));
+				s_instance.RemoveMovementSectionFromChart(MoveTAG, CurrentSelectedMeasure);
+				workingSquareElement.Remove(foundSquare);
+				moveGO = GameObject.Find(s_instance.GetMovementIdFormated(CurrentSelectedMeasure, SQUARE_WALL_TAG));
+				if(moveGO != null) {
+					DestroyImmediate(moveGO);
+				}
+			}
+
+            if(foundTriangle.initialized){
+				if (MoveTAG==TRIANGLE_WALL_TAG && foundTriangle.position[0] == _pos[0] && foundTriangle.position[1] == _pos[1]) {
+					if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, StringVault.Info_TriangleOff);
+					if(!forcePlacement) addNew = false;
+				}
+				historyEvent.Add(new HistoryChange(History.HistoryObjectType.HistoryCrouch, false, Note.NoteType.TriangleObstacle, CurrentSelectedMeasure, foundTriangle.position, new float[,] {}, new float[] {0f, 0f, 90f}));
+				s_instance.RemoveMovementSectionFromChart(MoveTAG, CurrentSelectedMeasure);
+				workingTrianElement.Remove(foundTriangle);
+				moveGO = GameObject.Find(s_instance.GetMovementIdFormated(CurrentSelectedMeasure, TRIANGLE_WALL_TAG));
+				if(moveGO != null) {
+					DestroyImmediate(moveGO);
+				}
+			}
+
 			// Add the new movement
 			if(addNew){
 				if(MoveTAG==CROUCH_TAG){
@@ -8154,7 +8266,22 @@ namespace MiKu.NET {
 					slide.initialized = true;
 					slide.slideType = GetSlideTypeByTag(MoveTAG);
 					workingElementHorz.Add(slide);	
-				}
+				} else if(MoveTAG == SQUARE_WALL_TAG) {
+                    Square square = new Square();
+					square.time = CurrentSelectedMeasure;
+					square.position = finalPos;
+					zRot = 0;
+					square.initialized = true;
+					workingSquareElement.Add(square);	
+                } else if(MoveTAG == TRIANGLE_WALL_TAG) {
+                    Triangle triangle = new Triangle();
+					triangle.time = CurrentSelectedMeasure;
+					triangle.position = finalPos;
+					zRot = 0;
+					triangle.initialized = true;
+					workingTrianElement.Add(triangle);	
+                }
+
 				historyEvent.Add(new HistoryChange(historyType, true, historySubType, CurrentSelectedMeasure, finalPos, new float[,] {}, new float[] {0f, 0f, zRot}));
 				s_instance.AddMovementGameObjectToScene(CurrentSelectedMeasure, finalPos, MoveTAG, zRot);
 				if(!isOverwrite) Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info, onText);
@@ -9218,6 +9345,40 @@ namespace MiKu.NET {
             return CurrentChart.Slides.Easy;
         }
 
+        List<Square> GetCurrentSquaresListByDifficulty() {
+            if(CurrentChart == null) return null;
+            switch(CurrentDifficulty) {
+                case TrackDifficulty.Normal:
+                    return CurrentChart.Squares.Normal;
+                case TrackDifficulty.Hard:
+                    return CurrentChart.Squares == null ? null : CurrentChart.Squares.Hard;
+                case TrackDifficulty.Expert:
+                    return CurrentChart.Squares.Expert;
+                case TrackDifficulty.Master:
+                    return CurrentChart.Squares.Master;
+                case TrackDifficulty.Custom:
+                    return CurrentChart.Squares.Custom;
+            }
+            return CurrentChart.Squares.Easy;
+        }
+
+        List<Triangle> GetCurrentTrianglesListByDifficulty() {
+            if(CurrentChart == null) return null;
+            switch(CurrentDifficulty) {
+                case TrackDifficulty.Normal:
+                    return CurrentChart.Triangles.Normal;
+                case TrackDifficulty.Hard:
+                    return CurrentChart.Triangles == null ? null : CurrentChart.Triangles.Hard;
+                case TrackDifficulty.Expert:
+                    return CurrentChart.Triangles.Expert;
+                case TrackDifficulty.Master:
+                    return CurrentChart.Triangles.Master;
+                case TrackDifficulty.Custom:
+                    return CurrentChart.Triangles.Custom;
+            }
+            return CurrentChart.Triangles.Easy;
+        }
+
         /// <summary>
         /// Get The current lights list based on the selected difficulty
         /// </summary>
@@ -9490,7 +9651,7 @@ namespace MiKu.NET {
             LatencyOffset = PlayerPrefs.GetFloat(LATENCY_PREF_KEY, 0);
             syncnhWithAudio = ( PlayerPrefs.GetInt(SONG_SYNC_PREF_KEY, 0) > 0) ? true : false;
             if(PlayerPrefs.GetInt(VSYNC_PREF_KEY, 1) > 0) {
-                ToggleVsycn();
+                ToggleVsycn(false);
             }
             m_CameraMoverScript.panSpeed = PlayerPrefs.GetFloat(PANNING_PREF_KEY, 0.15f);
             m_CameraMoverScript.turnSpeed = PlayerPrefs.GetFloat(ROTATION_PREF_KEY, 1.5f);
@@ -9502,7 +9663,15 @@ namespace MiKu.NET {
             gridManager.DrawGridLines();
             currentStepType = (StepType)PlayerPrefs.GetInt(STEPTYPE_KEY, 0);
             showLastPlaceNoted = ( PlayerPrefs.GetInt(LASTPLACENOTE_KEY, 1) > 0) ? true : false;
+            Serializer.s_instance.DoZipEncryption = ( PlayerPrefs.GetInt(DOZIPENCRYTION_KEY, 0) > 0) ? true : false;
             ToggleStepType(true);
+
+            Miku_DialogManager.ShowDialog(Miku_DialogManager.DialogType.Info,
+                string.Format(
+                    StringVault.Info_ZipEncryption,
+                    (Serializer.s_instance.DoZipEncryption) ? "On" : "Off"
+                )
+            );
         }
 
         private void SaveEditorUserPrefs() {
@@ -9519,6 +9688,7 @@ namespace MiKu.NET {
             PlayerPrefs.SetFloat(GRIDSIZE_KEY, gridManager.SeparationSize);
             PlayerPrefs.SetInt(STEPTYPE_KEY, (int)currentStepType);
             PlayerPrefs.SetInt(LASTPLACENOTE_KEY, (showLastPlaceNoted) ? 1 : 0);
+            PlayerPrefs.SetInt(DOZIPENCRYTION_KEY, Serializer.s_instance.DoZipEncryption ? 1 : 0);
             // Debug.LogError($"Scroll sound is {doScrollSound}");
         }
 
@@ -9771,7 +9941,8 @@ namespace MiKu.NET {
                 .AppendLine(string.Format("<indent=10%>- Diagonal Left - <b>{0}</b></indent>", totalDiagLeft))   
                 .AppendLine(string.Format("<indent=10%>- Right - <b>{0}</b></indent>", totalRight))
                 .AppendLine(string.Format("<indent=10%>- Diagonal Right - <b>{0}</b></indent>", totalDiagRight))
-                .AppendLine(string.Format("<indent=10%>- Crouch - <b>{0}</b></indent>", totalCrouchs));
+                .AppendLine(string.Format("<indent=10%>- Crouch - <b>{0}</b></indent>", totalCrouchs))
+                .AppendLine(string.Format("<indent=10%>- Dict Keys - <b>{0}</b></indent>", workingTrack.Count));
 
             m_FullStatsText.SetText(statsSTRBuilder.ToString());
 
